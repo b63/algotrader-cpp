@@ -17,29 +17,37 @@ include_directories(BEFORE ${CMAKE_SOURCE_DIR}/websocketpp)
 find_package(CURL COMPONENTS HTTPS REQUIRED)
 list(TRANSFORM CURL_LIBRARIES REPLACE "\.so$" ".a" OUTPUT_VARIABLE CURL_LIBRARIES_STATIC)
 include_directories(${CURL_INCLUDE_DIR})
-message("CURL Libraries: ${CURL_LIBRARIES}")
+message(STATUS "CURL_LIBRARIES = ${CURL_LIBRARIES}")
+message(STATUS "CURL_LIBRARIES_STATIC = ${CURL_LIBRARIES_STATIC}")
 
 if (APPLE)
-    if (NOT DEFINED OPENSSL_ROOT_DIR)
-        set(OPENSSL_ROOT_DIR "/usr/local/homebrew/Cellar/openssl@3")
-    endif()
+    set(OPENSSL_ROOT_DIR "/usr/local/homebrew/Cellar/openssl@3/3.0.7")
 
-    find_path(OPENSSL_PKGCONFIG_DIR 
-                    NAMES "lib/pkgconfig/openssl.pc"
-                    PATHS ${OPEN_SSL_ROOT_DIR}
-                    NO_DEFAULT_PATH
-                    NO_PACKAGE_ROOT_PATH
-                    NO_CMAKE_PATH
-                    NO_CMAKE_ENVIRONMENT_PATH
-                    NO_SYSTEM_ENVIRONMENT_PATH
-                    NO_CMAKE_SYSTEM_PATH
-                    NO_CMAKE_INSTALL_PREFIX)
+    # set(OPENSSL_PKGCONFIG_DIR "/usr/local/homebrew/Cellar/openssl@3/3.0.7/lib/pkgconfig")
+    # find_path(OPENSSL_PKGCONFIG_DIR 
+    #                 NAMES "lib/pkgconfig/openssl.pc"
+    #                 PATHS ${OPENSSL_ROOT_DIR}
+    #                 NO_DEFAULT_PATH
+    #                 NO_PACKAGE_ROOT_PATH
+    #                 NO_CMAKE_PATH
+    #                 NO_CMAKE_ENVIRONMENT_PATH
+    #                 NO_SYSTEM_ENVIRONMENT_PATH
+    #                 NO_CMAKE_SYSTEM_PATH
+    #                 NO_CMAKE_INSTALL_PREFIX)
 
-    set(ENV{PKG_CONFIG_PATH} "${OPEN_SSL_PKGCONFIG_DIR}:$ENV{PKG_CONFIG_PATH}")
-    find_package(OpenSSL COMPONENTS SSL Crypto REQUIRED)
+    # message(STATUS "OPENSSL_PKGCONFIG_DIR = ${OPENSSL_PKGCONFIG_DIR}")
+    # message(STATUS "OPENSSL_ROOT_DIR = ${OPENSSL_ROOT_DIR}")
+
+    # set(ENV{PKG_CONFIG_PATH} "${OPENSSL_PKGCONFIG_DIR}:$ENV{PKG_CONFIG_PATH}")
+    # find_package(OpenSSL COMPONENTS SSL Crypto REQUIRED)
+
+    set(OPENSSL_LIBRARIES "${OPENSSL_ROOT_DIR}/lib/libssl.dylib;${OPENSSL_ROOT_DIR}/lib/libcrypto.dylib")
+    set(OPENSSL_INCLUDE_DIR "${OPENSSL_ROOT_DIR/include}")
 else()
     find_package(OpenSSL COMPONENTS SSL Crypto REQUIRED)
-    include_directories(${OPENSSL_INCLUDE_DIR})
 endif()
 
+include_directories(${OPENSSL_INCLUDE_DIR})
+
+message(STATUS "OPENSSL_LIBRARIES = ${OPENSSL_LIBRARIES}")
 add_subdirectory(${CMAKE_SOURCE_DIR}/src)
