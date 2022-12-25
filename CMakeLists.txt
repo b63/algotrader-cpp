@@ -19,40 +19,20 @@ message(STATUS "CURL_LIBRARIES = ${CURL_LIBRARIES}")
 message(STATUS "CURL_LIBRARIES_STATIC = ${CURL_LIBRARIES_STATIC}")
 
 if (APPLE)
+    set(CMAKE_OSX_ARCHITECTURES "arm64")
     set(OPENSSL_ROOT_DIR "/usr/local/homebrew/Cellar/openssl@3/3.0.7")
-
-    # set(OPENSSL_PKGCONFIG_DIR "/usr/local/homebrew/Cellar/openssl@3/3.0.7/lib/pkgconfig")
-    # find_path(OPENSSL_PKGCONFIG_DIR 
-    #                 NAMES "lib/pkgconfig/openssl.pc"
-    #                 PATHS ${OPENSSL_ROOT_DIR}
-    #                 NO_DEFAULT_PATH
-    #                 NO_PACKAGE_ROOT_PATH
-    #                 NO_CMAKE_PATH
-    #                 NO_CMAKE_ENVIRONMENT_PATH
-    #                 NO_SYSTEM_ENVIRONMENT_PATH
-    #                 NO_CMAKE_SYSTEM_PATH
-    #                 NO_CMAKE_INSTALL_PREFIX)
-
-    # message(STATUS "OPENSSL_PKGCONFIG_DIR = ${OPENSSL_PKGCONFIG_DIR}")
-    # message(STATUS "OPENSSL_ROOT_DIR = ${OPENSSL_ROOT_DIR}")
-
-    # set(ENV{PKG_CONFIG_PATH} "${OPENSSL_PKGCONFIG_DIR}:$ENV{PKG_CONFIG_PATH}")
-    # find_package(OpenSSL COMPONENTS SSL Crypto REQUIRED)
-
     set(OPENSSL_LIBRARIES "${OPENSSL_ROOT_DIR}/lib/libssl.dylib;${OPENSSL_ROOT_DIR}/lib/libcrypto.dylib")
-    set(OPENSSL_INCLUDE_DIR "${OPENSSL_ROOT_DIR/include}")
+    set(OPENSSL_INCLUDE_DIR "${OPENSSL_ROOT_DIR}/include")
     message(STATUS "OPENSSL_LIBRARIES = ${OPENSSL_LIBRARIES}")
-
     set(CXX_STD_LIB "libc++")
 else()
     find_package(OpenSSL COMPONENTS SSL Crypto REQUIRED)
     set(CXX_STD_LIB "libstdc++")
 endif()
 
-message(STATUS "OPENSSL_INCLUDE_DIR = ${OPENSSL_INCLUDE_DIR}")
 
+message(STATUS "OPENSSL_INCLUDE_DIR = ${OPENSSL_INCLUDE_DIR}")
 include_directories(${OPENSSL_INCLUDE_DIR})
-message(STATUS "OPENSSL_LIBRARIES = ${OPENSSL_LIBRARIES}")
 
 set(CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS} "-Wall -Werror -O2 -flto -stdlib=${CXX_STD_LIB}")
 
