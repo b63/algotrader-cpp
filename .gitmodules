@@ -4,3 +4,9 @@
 [submodule "asio"]
 	path = asio
 	url = https://github.com/chriskohlhoff/asio.git
+[submodule "rapidjson"]
+	path = rapidjson
+	url = https://github.com/Tencent/rapidjson
+[submodule "fmt"]
+	path = fmt
+	url = https://github.com/fmtlib/fmt

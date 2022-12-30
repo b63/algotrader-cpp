@@ -11,6 +11,8 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/bin")
 include_directories(BEFORE ${CMAKE_SOURCE_DIR}/include)
 include_directories(BEFORE ${CMAKE_SOURCE_DIR}/asio/asio/include)
 include_directories(BEFORE ${CMAKE_SOURCE_DIR}/websocketpp)
+include_directories(BEFORE ${CMAKE_SOURCE_DIR}/rapidjson/include)
+include_directories(BEFORE ${CMAKE_SOURCE_DIR}/fmt/include)
 
 find_package(CURL COMPONENTS HTTPS REQUIRED)
 list(TRANSFORM CURL_LIBRARIES REPLACE "\.so$" ".a" OUTPUT_VARIABLE CURL_LIBRARIES_STATIC)
@@ -34,6 +36,8 @@ endif()
 message(STATUS "OPENSSL_INCLUDE_DIR = ${OPENSSL_INCLUDE_DIR}")
 include_directories(${OPENSSL_INCLUDE_DIR})
 
-set(CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS} "-Wall -Werror -O2 -flto -stdlib=${CXX_STD_LIB}")
+set(CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS} "-Wall -Werror -O2 -flto -stdlib=${CXX_STD_LIB} -ggdb")
 
 add_subdirectory(${CMAKE_SOURCE_DIR}/src)
+add_subdirectory(${CMAKE_SOURCE_DIR}/tests)
+add_subdirectory(${CMAKE_SOURCE_DIR}/tests/market_feed)
