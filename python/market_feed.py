@@ -1,7 +1,7 @@
 import abc
 import logging
 from datetime import datetime
-from typing import Optional, Tuple, Any, Mapping
+from typing import Optional, Tuple, Any, Mapping, Dict
 
 import requests
 import hashlib
@@ -9,13 +9,14 @@ import hmac
 
 from order_book import OrderBook, OrderType
 from util import attach_file_handler, logger, \
-                 tojson, fromjson, record_timing
+    tojson, fromjson, record_timing
+
 
 class MarketFeed(abc.ABC):
     def __init__(self) -> None:
         self.update_callbacks = []
 
-        self.logger : logging.Logger = logging.getLogger(f"{type(self).__name__}")
+        self.logger: logging.Logger = logging.getLogger(f"{type(self).__name__}")
         self.logger.setLevel(logging.INFO)
 
     @abc.abstractmethod
@@ -40,16 +41,16 @@ class MarketFeed(abc.ABC):
 
 
 class BinanceMaketFeed(MarketFeed):
-    SECRET_API_KEY    = "AfqGK6Jf8HQGiI93RC7jYDJMKVS9cMlc4adhvcXeMSOSUKQEIkmIV9SmeZDu0kd5"
-    API_KEY           = "bD9QfIu4FBdRJpviWI075M6KMX2lb9oUyLfC2IknlE4vcIbnFKQaeSm8f0vLW8te"
-    SOCKET_API_URL    = "wss://stream.binance.us:9443/ws"
-    SNAPSHOT_API_URL  = "https://www.binance.us/api/v1/depth"
+    SECRET_API_KEY = "AfqGK6Jf8HQGiI93RC7jYDJMKVS9cMlc4adhvcXeMSOSUKQEIkmIV9SmeZDu0kd5"
+    API_KEY = "bD9QfIu4FBdRJpviWI075M6KMX2lb9oUyLfC2IknlE4vcIbnFKQaeSm8f0vLW8te"
+    SOCKET_API_URL = "wss://stream.binance.us:9443/ws"
+    SNAPSHOT_API_URL = "https://www.binance.us/api/v1/depth"
 
-    def __init__(self, orderbook : OrderBook) -> None:
+    def __init__(self, orderbook: OrderBook) -> None:
         super().__init__()
 
-        self.update_id : Optional[Tuple[int, int]] = None
-        self.snapshot_update_id : Optional[int] = None
+        self.update_id: Optional[Tuple[int, int]] = None
+        self.snapshot_update_id: Optional[int] = None
         self.message_id = 1
         self.stream = "depth"
         self.orderbook = orderbook
@@ -67,7 +68,7 @@ class BinanceMaketFeed(MarketFeed):
         return f"{self.SOCKET_API_URL}/{product}@{self.stream}@100ms"
 
     @staticmethod
-    def generate_subscribe_message(products, stream) -> dict[str, Any]:
+    def generate_subscribe_message(products, stream) -> Dict[str, Any]:
         request_body = {
             "method": "SUBSCRIBE",
             "params": [f"{product}@{stream}" for product in products],
@@ -76,7 +77,7 @@ class BinanceMaketFeed(MarketFeed):
         return request_body
 
     @staticmethod
-    def generate_unsubscribe_message(products, stream) -> dict[str, Any]:
+    def generate_unsubscribe_message(products, stream) -> Dict[str, Any]:
         request_body = {
             "method": "UNSUBSCRIBE",
             "params": [f"{product}@{stream}" for product in products],
@@ -85,7 +86,7 @@ class BinanceMaketFeed(MarketFeed):
         return request_body
 
     def process_market_feed_snapshot(self):
-        headers = {"x-mbx-apikey": self.API_KEY }
+        headers = {"x-mbx-apikey": self.API_KEY}
         product = self.products[0].upper()
 
         url = f"{self.SNAPSHOT_API_URL}?symbol={product}&limit=5000"
@@ -102,23 +103,22 @@ class BinanceMaketFeed(MarketFeed):
         bids, asks = resj["bids"], resj["asks"]
 
         self.logger.info(f"processing {len(bids) + len(asks)} updates in snapshot")
-        self.process_ask_updates(asks, 0) # just use 0 as the time stamp
+        self.process_ask_updates(asks, 0)  # just use 0 as the time stamp
         self.process_bid_updates(bids, 0)
 
-    def process_bid_updates(self, updates : list, ts: int):
+    def process_bid_updates(self, updates: list, ts: int):
         for update in updates:
-            price    = float(update[0])
+            price = float(update[0])
             quantity = float(update[1])
 
             self.orderbook.update_order(OrderType.BID, price, quantity, ts)
 
-    def process_ask_updates(self, updates : list, ts: int):
+    def process_ask_updates(self, updates: list, ts: int):
         for update in updates:
-            price    = float(update[0])
+            price = float(update[0])
             quantity = float(update[1])
 
             self.orderbook.update_order(OrderType.ASK, price, quantity, ts)
-
 
     async def subscribe_to_feed(self, ws):
         # don't need to subscribe to a stream for binance
@@ -133,7 +133,6 @@ class BinanceMaketFeed(MarketFeed):
         sub_msg_str = tojson(sub_msg)
         await ws.send(sub_msg_str)
         self.logger.info(f">>> {sub_msg_str}")
-
 
     async def unsubscribe_to_feed(self, ws):
         # don't need to subscribe to a stream for binance
@@ -154,7 +153,7 @@ class BinanceMaketFeed(MarketFeed):
             callback(self.orderbook)
 
     @record_timing(name="binance process_message")
-    def process_message(self, raw_msg : str) -> int:
+    def process_message(self, raw_msg: str) -> int:
         msg = fromjson(raw_msg)
         if "result" in msg and "id" in msg:
             self.logger.info(f"received success response {msg}")
@@ -162,13 +161,13 @@ class BinanceMaketFeed(MarketFeed):
             return 0
 
         if msg.get("e", None) != "depthUpdate":
-            self.logger.error("ignoring unkown message: {msg}")
+            self.logger.error("ignoring unknown message: {msg}")
             return 0
 
         event_time = int(msg["E"])
-        symbol     = msg["s"]
+        symbol = msg["s"]
         start_update_id = int(msg["U"])
-        end_update_id   = int(msg["u"])
+        end_update_id = int(msg["u"])
 
         bids: list = msg["b"]
         asks: list = msg["a"]
@@ -176,14 +175,16 @@ class BinanceMaketFeed(MarketFeed):
         if not self.update_id:
             # no updates from socket have been processed yet, orderbook should only be updated with snapshot
             assert self.snapshot_update_id
-            if not (start_update_id <= self.snapshot_update_id+1 and end_update_id >= self.snapshot_update_id+1):
-                logger.debug(f"snapshot update id: {self.snapshot_update_id}, ignoring update ({start_update_id}, {end_update_id})")
+            if not (start_update_id <= self.snapshot_update_id + 1 <= end_update_id):
+                logger.debug(
+                    f"snapshot update id: {self.snapshot_update_id}, ignoring update ({start_update_id}, {end_update_id})")
                 return 0
         else:
             # ensure that message has correct update ids
             last_update_id = self.update_id[1]
-            if not (start_update_id <= last_update_id+1 and end_update_id >= last_update_id+1):
-                logger.error(f"last update id: {last_update_id}, got update with ids ({start_update_id}, {end_update_id})")
+            if not (start_update_id <= last_update_id + 1 <= end_update_id):
+                logger.error(
+                    f"last update id: {last_update_id}, got update with ids ({start_update_id}, {end_update_id})")
                 # stop
                 return 1000
 
@@ -197,12 +198,12 @@ class BinanceMaketFeed(MarketFeed):
 
 
 class CoinBaseMaketFeed(MarketFeed):
-    SECRET_KEY = "U4yOxUMq2dJwrAkxTRpG7xHGlCnj2Tdp"
-    API_KEY    = "0PAWKLak4h8eVEH3"
+    SECRET_KEY = "kZetsiamVepxJyTjGV2La60JPaOxNL9L"
+    API_KEY    = "Llnonme9PTHbbud2"
     SOCKET_API_URL    = "wss://advanced-trade-ws.coinbase.com"
     NAME = "Coinbase"
 
-    def __init__(self, orderbook : OrderBook) -> None:
+    def __init__(self, orderbook: OrderBook) -> None:
         super().__init__()
 
         self.sequence_num = 0
@@ -226,13 +227,13 @@ class CoinBaseMaketFeed(MarketFeed):
         ts = int(datetime.now().timestamp())
         signature_plain = f"{ts}{channels}{products}"
 
-        signature = hmac.digest(bytes(CoinBaseMaketFeed.SECRET_KEY, 'utf-8'), bytes(signature_plain, 'utf-8'), hashlib.sha256).hex()
+        signature = hmac.digest(bytes(CoinBaseMaketFeed.SECRET_KEY, 'utf-8'), bytes(signature_plain, 'utf-8'),
+                                hashlib.sha256).hex()
         json_msg.update({
             'signature': signature,
             'timestamp': str(ts)
         })
         return json_msg
-
 
     @staticmethod
     def generate_subscribe_message(products, channel) -> Mapping[str, Any]:
@@ -258,7 +259,6 @@ class CoinBaseMaketFeed(MarketFeed):
 
         return CoinBaseMaketFeed.timestamp_and_sign(request_body, channel, products)
 
-
     async def subscribe_to_feed(self, ws):
         sub_msg = CoinBaseMaketFeed.generate_subscribe_message(self.products, channel=self.channel)
         sub_msg_str = tojson(sub_msg)
@@ -271,17 +271,17 @@ class CoinBaseMaketFeed(MarketFeed):
         await ws.send(unsub_msg_str)
         self.logger.info(f">>> {unsub_msg_str}")
 
-    def process_updates(self, updates : list):
+    def process_updates(self, updates: list):
         for update in updates:
-            side          = update["side"]
-            event_time    = update["event_time"].rstrip("Z")
-            price         = float(update["price_level"])
-            quantity      = float(update["new_quantity"])
+            side = update["side"]
+            event_time = update["event_time"].rstrip("Z")
+            price = float(update["price_level"])
+            quantity = float(update["new_quantity"])
 
             if "." in event_time:
                 date, seconds = event_time.split('.')
             else:
-                date    = event_time
+                date = event_time
                 seconds = "0"
 
             unix_ts = datetime.strptime(date, "%Y-%m-%dT%H:%M:%S").timestamp() + float(f"0.{seconds}")
@@ -291,11 +291,10 @@ class CoinBaseMaketFeed(MarketFeed):
             elif side == "offer":
                 order_type = OrderType.ASK
             else:
-                self.logger.info(f"unkown side \"{side}\" in update event")
+                self.logger.info(f"unknown side \"{side}\" in update event")
                 continue
 
             self.orderbook.update_order(order_type, price, quantity, unix_ts)
-
 
     def process_snapshot_event(self, event: dict):
         product_id = event["product_id"]
@@ -317,13 +316,11 @@ class CoinBaseMaketFeed(MarketFeed):
 
         self.process_updates(updates)
 
-
     def notify_update_callback(self):
         if not self.update_callbacks:
             return
         for callback in self.update_callbacks:
             callback(self.orderbook)
-
 
     def process_order_book_update(self, msg):
         for event in msg["events"]:
@@ -334,11 +331,10 @@ class CoinBaseMaketFeed(MarketFeed):
                 self.process_update_event(event)
                 self.notify_update_callback()
             else:
-                self.logger.info(f"unkown event type {event_type}, ignoring: {event}")
+                self.logger.info(f"unknown event type {event_type}, ignoring: {event}")
 
-
-    #@record_timing(name="coinbase process_message")
-    def process_message(self, raw_msg : str) -> int:
+    # @record_timing(name="coinbase process_message")
+    def process_message(self, raw_msg: str) -> int:
         msg = fromjson(raw_msg)
         if msg.get("type", None) == "error":
             self.logger.error(f"Error: {raw_msg}")
@@ -357,6 +353,6 @@ class CoinBaseMaketFeed(MarketFeed):
         elif channel == 'subscriptions':
             pass
         else:
-            # unkown channel ignore
+            # unknown channel ignore
             self.logger.info(f"ignoring message from channel {channel}")
         return 0

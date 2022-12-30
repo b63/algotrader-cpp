@@ -4,9 +4,10 @@ from tui_wins import TUIMarketFeedWin
 import asyncio
 import curses
 
-from typing import List
+from typing import List, Dict
 from util import tuilogger
 from functools import partial
+
 
 async def wrapper(func, /, *args, **kwds):
     """Wrapper function that initializes curses and calls another function,
@@ -21,7 +22,7 @@ async def wrapper(func, /, *args, **kwds):
         # Initialize curses
         stdscr = curses.initscr()
 
-        # Turn off echoing of keys, and enter cbreak mode,
+        # Turn off echoing of keys, and enter break mode,
         # where no buffering is performed on keyboard input
         curses.noecho()
         curses.cbreak()
@@ -49,9 +50,10 @@ async def wrapper(func, /, *args, **kwds):
             curses.nocbreak()
             curses.endwin()
 
+
 class TUI:
-    def __init__(self, orderbooks: List[OrderBook], feed_tasks : List[asyncio.Task],
-            only_summary=False, bin_size: float = 0.2) -> None:
+    def __init__(self, orderbooks: List[OrderBook], feed_tasks: List[asyncio.Task],
+                 only_summary=False, bin_size: float = 0.2) -> None:
         self.feed_tasks = feed_tasks
 
         self.disabled = True
@@ -59,22 +61,21 @@ class TUI:
         self.only_summary = only_summary
         self._default_bin_size = bin_size
 
-        self.feedtuis : dict[OrderBook, TUIMarketFeedWin] = dict()
+        self.feedtuis: Dict[OrderBook, TUIMarketFeedWin] = dict()
         self._refresh_tasks = set()
-
 
     async def cancel_feed_tasks(self):
         if not self.feed_tasks:
             return
         for i, task in enumerate(self.feed_tasks):
-            print(f"Canceling task {i+1}/{len(self.feed_tasks)} ...")
+            print(f"Canceling task {i + 1}/{len(self.feed_tasks)} ...")
             task.cancel()
             try:
                 await task
             except asyncio.CancelledError:
                 pass
 
-    def market_feed_updated(self, orderbook : OrderBook):
+    def market_feed_updated(self, orderbook: OrderBook):
         if orderbook not in self.feedtuis:
             return
 
@@ -92,7 +93,6 @@ class TUI:
                 tuilogger.info("disabling TUI ...")
                 self.disabled = True
 
-
         refresh_task = asyncio.create_task(feedtui.refresh_async())
         self._refresh_tasks.add(refresh_task)
         refresh_task.add_done_callback(partial(task_done_callback, self))
@@ -107,8 +107,8 @@ class TUI:
         offset_y = 0
         for orderbook in self.orderbooks:
             feedtui = TUIMarketFeedWin(orderbook, order_height=8, offset_y=offset_y, header=f"{orderbook.name}",
-                    show_order_book=not self.only_summary,
-                    bin_size=self._default_bin_size, stdscr=stdscr)
+                                       show_order_book=not self.only_summary,
+                                       bin_size=self._default_bin_size, stdscr=stdscr)
             feedtui.init_win()
             offset_y += feedtui._height
             self.feedtuis[orderbook] = feedtui

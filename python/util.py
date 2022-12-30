@@ -6,7 +6,7 @@ import time
 import json
 
 
-def attach_file_handler(logger: logging.Logger, filename: str, fmt : Optional[str] = None, directory="logs") :
+def attach_file_handler(logger: logging.Logger, filename: str, fmt: Optional[str] = None, directory="logs"):
     if fmt:
         fmt = "[%(funcName)s:%(lineno)d] %(message)s"
     handler = logging.FileHandler(filename=os.path.join(directory, filename))
@@ -17,16 +17,16 @@ def attach_file_handler(logger: logging.Logger, filename: str, fmt : Optional[st
 
 
 logging.basicConfig(filename="logs/log", format="[%(funcName)s:%(lineno)d] %(message)s")
-tuilogger       = logging.getLogger("tui")
-tradelogger     = logging.getLogger("trade")
-logger          = logging.getLogger("general")
+tuilogger = logging.getLogger("tui")
+tradelogger = logging.getLogger("trade")
+logger = logging.getLogger("general")
 
 attach_file_handler(tuilogger, "log_tui")
 attach_file_handler(tradelogger, "log_trade")
 
-tuilogger.setLevel   (logging.DEBUG)
-logger.setLevel      (logging.INFO)
-tradelogger.setLevel (logging.INFO)
+tuilogger.setLevel(logging.DEBUG)
+logger.setLevel(logging.INFO)
+tradelogger.setLevel(logging.INFO)
 
 
 def logcall(func, log=None, log_level=logging.INFO, before=True):
@@ -34,7 +34,7 @@ def logcall(func, log=None, log_level=logging.INFO, before=True):
         log = logger
 
     def inner(*args, **kwargs):
-        args_str   = ", ".join(map(str, args))
+        args_str = ", ".join(map(str, args))
         kwargs_str = f", {kwargs}".strip("{}") if kwargs else ""
         if before:
             log.log(log_level, f"INVOKING {func.__name__}({args_str}{kwargs_str})")
@@ -48,9 +48,11 @@ def logcall(func, log=None, log_level=logging.INFO, before=True):
 
     return inner
 
+
 def record_timing(name):
     def decorator(func):
         prev = 0
+
         def inner(*args, **kwargs):
             nonlocal prev
             start = time.time()
@@ -60,9 +62,9 @@ def record_timing(name):
             delta = end - start
             if prev != 0:
                 latency = start - prev
-                logger.info(f"<{name}> execution time: {delta*1000:,.6f} ms, latency: {latency*1000:,.6f}ms")
+                logger.info(f"<{name}> execution time: {delta * 1000:,.6f} ms, latency: {latency * 1000:,.6f}ms")
             else:
-                logger.info(f"<{name}> execution time: {delta*1000:,.6f} ms")
+                logger.info(f"<{name}> execution time: {delta * 1000:,.6f} ms")
 
             prev = time.time()
             return ret
@@ -71,9 +73,10 @@ def record_timing(name):
 
     return decorator
 
+
 def tojson(message):
-    return json.dumps(message, separators=(",",":"))
+    return json.dumps(message, separators=(",", ":"))
+
 
 def fromjson(message):
     return json.loads(message)
-

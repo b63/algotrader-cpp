@@ -1,15 +1,16 @@
-from typing import  Optional, Sequence
+from typing import Optional, Sequence, Set, List, Dict, Tuple
 from enum import Enum
+
 
 class ordered_set:
     def __init__(self, iterable: Optional[Sequence[float]] = None) -> None:
         if not iterable:
             self._array = []
-            self._set   = set()
+            self._set = set()
             return
 
-        self._set: set[float]    = set(iterable)
-        self._array: list[float] = list(self._set)
+        self._set: Set[float] = set(iterable)
+        self._array: List[float] = list(self._set)
         self._array.sort()
 
     def __getitem__(self, index: int) -> float:
@@ -22,17 +23,17 @@ class ordered_set:
         return len(self._array)
 
     def _find_bin(self, key: float) -> int:
-        n     = len(self._array)
+        n = len(self._array)
         start = 0
         while n > 1:
-            left  = (n+1)//2
+            left = (n + 1) // 2
             right = n - left
             mid = start + left - 1
             if key > self._array[mid]:
                 start = mid + 1
-                n     = right
+                n = right
             else:
-                n     = left
+                n = left
 
         return start
 
@@ -50,7 +51,7 @@ class ordered_set:
             if key < self._array[ind]:
                 self._array.insert(ind, key)
             else:
-                self._array.insert(ind+1, key)
+                self._array.insert(ind + 1, key)
 
         self._set.add(key)
 
@@ -76,9 +77,9 @@ class OrderBook:
         self.name = name
 
         # buy orders: price -> (quantity, unix time stamp)
-        self.bids : dict[float, tuple[float, float]] = dict()
+        self.bids: Dict[float, Tuple[float, float]] = dict()
         # sell orders: price -> (quantity, unix time stamp)
-        self.asks : dict[float, tuple[float, float]] = dict()
+        self.asks: Dict[float, Tuple[float, float]] = dict()
 
         self._bid_prices: ordered_set = ordered_set()
         self._ask_prices: ordered_set = ordered_set()
@@ -90,14 +91,14 @@ class OrderBook:
         item = self.asks.get(ask_price)
         if item:
             quantity, _ = item
-            return  quantity
+            return quantity
         return None
 
     def bid_quantity(self, bid_price: float) -> Optional[float]:
         item = self.bids.get(bid_price)
         if item:
             quantity, _ = item
-            return  quantity
+            return quantity
         return None
 
     @property
@@ -118,7 +119,7 @@ class OrderBook:
         else:
             self.update_ask(price, quantity, time)
 
-    def update_bid(self, price: float, quantity: float , time: float):
+    def update_bid(self, price: float, quantity: float, time: float):
         if price in self.bids:
             prev_quantity, prev_time = self.bids[price]
             if time < prev_time:
@@ -136,7 +137,7 @@ class OrderBook:
             self._bid_prices.add(price)
             self._max_bid_quantity = max(quantity, self._max_bid_quantity)
 
-    def update_ask(self, price: float, quantity: float , time: float):
+    def update_ask(self, price: float, quantity: float, time: float):
         if price in self.asks:
             prev_quantity, prev_time = self.asks[price]
             if time < prev_time:
@@ -153,5 +154,3 @@ class OrderBook:
             self.asks[price] = (quantity, time)
             self._ask_prices.add(price)
             self._max_ask_quantity = max(quantity, self._max_ask_quantity)
-
-
