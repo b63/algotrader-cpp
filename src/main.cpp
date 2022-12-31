@@ -6,8 +6,7 @@
 #include <websocketpp/client.hpp>
 
 
-int main(void)
-{
+int main() {
   CURL *curl;
   CURLcode res;
 
