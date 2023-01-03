@@ -7,6 +7,8 @@
 
 #include <string>
 #include <unordered_map>
+#include <queue>
+#include <vector>
 #include <functional>
 #include <any>
 
@@ -89,9 +91,85 @@ class market_feed {};
 struct orderbook_t {
     typedef double key_t;
     typedef double value_t;
+    typedef std::pair<double, double> order_t;
 
     const exchange_apis exchange;
     const instrument_pair_t pair;
+
+    // TODO: maybe use negative values to create max heap instead of using Compare?
+    template <size_t MaxSize, template <typename> typename Compare>
+    struct order_heap_t
+    {
+        typedef Compare<order_t> compare_t;
+        typedef order_t* iterator;
+        typedef order_t*const const_iterator;
+
+        order_heap_t()
+            : m_heap{}, m_compare {}
+        {
+        }
+
+        bool pop(order_t* popped = nullptr)
+        {
+            if (m_size == 0)
+                return false;
+
+            const auto& begin {m_heap.begin()};
+            const auto& end   {begin + m_size};
+            std::pop_heap(begin, end, m_compare);
+
+            if (!popped)
+                *popped = *(begin + m_size - 1);
+
+            --m_size;
+            return true;
+        }
+
+        bool push(const order_t& order, order_t* popped)
+        {
+            auto& begin {m_heap.begin()};
+            auto& end   {begin + m_size};
+
+            *end = order;
+            std::push_heap(begin, end+1, m_compare);
+
+            if (m_size < MaxSize)
+            {
+                ++m_size;
+                return false;
+            }
+
+            *popped = *end;
+            return true;
+        }
+
+        void copy_vector(std::vector<order_t> &vec)
+        {
+            vec.resize(m_size);
+            std::memcpy(&vec[0], &m_heap[0], m_size * sizeof(order_t));
+        }
+
+        void copy_sorted_vector(std::vector<order_t> &vec)
+        {
+            vec.resize(m_size);
+            std::memcpy(&vec[0], &m_heap[0], m_size * sizeof(order_t));
+            std::sort_heap(vec.begin(), vec.end(), m_compare);
+        }
+
+        size_t size() const { return m_size; }
+
+        iterator begin()        { return m_heap.begin(); };
+        const_iterator cbegin() { return m_heap.cbegin(); };
+        iterator end()          { return m_heap.begin() + m_size; };
+        const_iterator cend()   { return m_heap.cbegin() + m_size; };
+
+
+    private:
+        std::array<order_t, MaxSize+1> m_heap;
+        size_t m_size;
+        const compare_t m_compare;
+    };
+
 
     orderbook_t(instrument_pair_t pair, exchange_apis exchange_id)
         : exchange{exchange_id}, pair {pair}, m_map{}
@@ -132,6 +210,7 @@ struct orderbook_t {
     template <>
     void process_ticker_update<binance_api>(const Value& update)
     { }
+
 
 private:
     std::unordered_map<key_t, value_t> m_map;
