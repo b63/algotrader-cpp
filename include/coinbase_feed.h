@@ -14,6 +14,7 @@
 #include <chrono>
 #include <functional>
 #include <algorithm>
+#include <utility>
 
 
 template <>
@@ -28,9 +29,14 @@ public:
           m_socket{nullptr},
           m_thread {nullptr},
           m_stop_source {},
+          m_orderbooks{},
           m_handlers{},
           m_raw_handlers{}
     {
+        for (auto& pair : m_pairs)
+        {
+            m_orderbooks.emplace(instrument_pair::to_coinbase(pair), orderbook_t{pair, binance_api::exchange_api_id});
+        }
     }
 
     void start_feed()
@@ -79,6 +85,7 @@ private:
     std::unique_ptr<market_feed_socket>  m_socket;
     std::unique_ptr<std::jthread>        m_thread;
     std::stop_source                     m_stop_source;
+    std::unordered_map<std::string, orderbook_t> m_orderbooks;
 
     std::vector<std::tuple<feed_event_t, feed_event_handler_t>>               m_handlers;
     std::vector<std::tuple<feed_event_t, feed_event_handler_ptr, std::any>> m_raw_handlers;
@@ -93,8 +100,53 @@ private:
 
     bool message_handler(const Document& json)
     {
-        std::string json_str {to_string<Document>(json)};
-        log("received message: {}\n", json_str.substr(0, MIN(100, json_str.size())));
+        const bool has_channel = json.HasMember("channel");
+        const bool has_type    = json.HasMember("type");
+        if (!has_type && !has_channel)
+        {
+            log("unkown message: {}\n", to_string<Document>(json));
+            return true; // ignore and continue listening for more messages
+        }
+
+        if (has_type)
+        {
+            const auto& type = json["type"];
+            if (!std::strncmp(type.GetString(), "error", type.GetStringLength()))
+            {
+                // received error message
+                if (!json.HasMember("message"))
+                    log("error response: {}", to_string<Document>(json));
+                else
+                    log("error response: {}", std::string(json["message"].GetString()));
+                // close down the websocket
+                return false;
+            }
+            log("uknown message type: {}\n", to_string<Document>(json));
+            return true;
+        }
+
+        const auto& channel = json["channel"];
+        // int sequence_num = json["sequence_num"].GetInt();
+        // #TODO: ensure that sequence_num increments by one every message
+        if (!std::strncmp("l2_data", channel.GetString(), channel.GetStringLength()))
+        {
+            // maket feed data
+            process_l2_data_events(json["events"]);
+        }
+        else if (!std::strncmp("ticker", channel.GetString(), channel.GetStringLength()))
+        {
+            // ticker data
+            process_tickers_data_events(json["events"]);
+        }
+        else if (!std::strncmp("subscriptions", channel.GetString(), channel.GetStringLength()))
+        {
+            log("received subscription response: {}", to_string<Document>(json));
+        }
+        else
+        {
+            log("unkown channel: {}", to_string<Document>(json));
+        }
+
         return true;
     }
 
@@ -122,6 +174,88 @@ private:
                 return;
         }
     }
+
+    void process_tickers_data_events(const Value& events)
+    {
+        // assert(events.IsArray())
+        for (size_t i = 0; i < events.Size(); ++i)
+        {
+            const Value& event      = events[i];
+            const Value& type       = event["type"];
+            const bool is_update   = std::strncmp("update", type.GetString(), type.GetStringLength());
+            const bool is_snapshot = !is_update && std::strncmp("snapshot", type.GetString(), type.GetStringLength());
+            if (!is_update && !is_snapshot)
+            {
+                log("unkown event type: {}\n", type.GetString());
+                continue;
+            }
+
+            const Value& tickers = event["tickers"];
+
+            for(size_t j = 0; j < tickers.Size(); ++j)
+            {
+                const Value& ticker = tickers[j];
+                // assert(!strncmp("ticker", ticker["type"].GetString(), ticker["type"].GetStringLength())
+                const Value& product_id = ticker["product_id"];
+
+                decltype(m_orderbooks)::iterator key_val = m_orderbooks.find(std::string{product_id.GetString()});
+                if (key_val == m_orderbooks.end())
+                    continue;
+
+                /**
+                 * example ticker json object:
+                 * {
+                 *     "type": "ticker",
+                 *     "product_id": "ETH-USD",
+                 *     "price": "1223.3",
+                 *     "volume_24_h": "200037.55097283",
+                 *     "low_24_h": "1204.04",
+                 *     "high_24_h": "1228.61",
+                 *     "low_52_w": "879.8",
+                 *     "high_52_w": "3894.12",
+                 *     "price_percent_chg_24_h": "0.87241902500165"
+                 *  }
+                 */
+                orderbook_t& orderbook = key_val->second;
+                orderbook.process_ticker_update<coinbase_api>(ticker);
+                notify_event_handlers(feed_event_t::TICKER_UPDATED, orderbook);
+            }
+
+        }
+    }
+
+    void process_l2_data_events(const Value& events)
+    {
+        // assert(events.IsArray())
+        for (size_t i = 0; i < events.Size(); ++i)
+        {
+            const Value& event      = events[i];
+            const Value& type       = event["type"];
+            const Value& product_id = event["product_id"];
+
+            decltype(m_orderbooks)::iterator key_val = m_orderbooks.find(std::string{product_id.GetString()});
+            if (key_val == m_orderbooks.end())
+                continue;
+            orderbook_t& orderbook = key_val->second;
+
+
+            if (!std::strncmp("update", type.GetString(), type.GetStringLength()))
+            {
+                orderbook.process_order_updates<coinbase_api>(events["updates"]);
+                notify_event_handlers(feed_event_t::ORDERS_UPDATED, orderbook);
+            }
+            else if (!std::strncmp("snapshot", type.GetString(), type.GetStringLength()))
+            {
+                orderbook.process_order_snapshot<coinbase_api>(events["updates"]);
+                notify_event_handlers(feed_event_t::ORDERS_UPDATED, orderbook);
+            }
+            else
+            {
+                log("unkown event type: {}\n", type.GetString());
+            }
+        }
+    }
+
     void add_subscribe_messages()
     {
         using namespace rapidjson;
