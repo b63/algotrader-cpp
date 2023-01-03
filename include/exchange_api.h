@@ -1,8 +1,9 @@
 #ifndef _EXCHANGE_API_H
 #define _EXCHANGE_API_H
 
+#include "json.h"
+
 #include <cstring>
-#define MIN(a,b) ((a) < (b) ? (a) : (b))
 
 #include <string>
 #include <unordered_map>
@@ -55,33 +56,16 @@ typedef std::pair<instrument, instrument> instrument_pair_t;
 namespace instrument_pair {
     std::string to_coinbase(instrument_pair_t pair);
     std::string to_binance(instrument_pair_t pair);
+    std::string to_binance_lower(instrument_pair_t pair);
 }
+
+
 
 enum class exchange_apis {
     COINBASE_ADVANCED,
     BINANCE,
     WEBULL
 };
-
-struct orderbook_t {
-    typedef double key_t;
-    typedef double value_t;
-    const exchange_apis exchange;
-
-    orderbook_t(instrument_pair_t pair, exchange_apis exchange_id)
-        : exchange{exchange_id}, pair {pair}
-    {
-
-    }
-
-    const instrument_pair_t pair;
-
-private:
-    std::unordered_map<key_t, value_t> m_map;
-
-};
-
-
 
 struct coinbase_api {
     static constexpr const exchange_apis exchange_api_id = exchange_apis::COINBASE_ADVANCED;
@@ -90,7 +74,8 @@ struct coinbase_api {
 
 struct binance_api {
     static constexpr const exchange_apis exchange_api_id = exchange_apis::BINANCE;
-    static constexpr const char* SOCKET_URI = "wss://advanced-trade-ws.coinbase.com";
+    static constexpr const char* SOCKET_URI = "wss://stream.binance.us:9443";
+    static constexpr const char* SNAPSHOT_URL = "https://www.binance.us/api/v1/depth";
 };
 
 template <typename ExchangeAPI>
@@ -100,15 +85,73 @@ template <typename ExchangeApi>
     requires is_exchange_api<ExchangeApi>
 class market_feed {};
 
+
+struct orderbook_t {
+    typedef double key_t;
+    typedef double value_t;
+
+    const exchange_apis exchange;
+    const instrument_pair_t pair;
+
+    orderbook_t(instrument_pair_t pair, exchange_apis exchange_id)
+        : exchange{exchange_id}, pair {pair}, m_map{}
+    {
+
+    }
+
+    template <typename T, typename... Args>
+    void process_order_updates(Args&&...) requires is_exchange_api<T>;
+
+    template <typename T, typename... Args>
+    void process_order_snapshot(Args&&...) requires is_exchange_api<T>;
+
+    template <typename T, typename... Args>
+    void process_ticker_update(Args&&...) requires is_exchange_api<T>;
+
+
+    template <>
+    void process_order_updates<coinbase_api>(const Value& updates)
+    { }
+
+    template <>
+    void process_order_updates<binance_api>(const Value& bids, const Value& asks)
+    { }
+
+    template <>
+    void process_order_snapshot<coinbase_api>(const Value& updates)
+    { }
+
+    template <>
+    void process_order_snapshot<binance_api>(const Value& bids, const Value& asks)
+    { }
+
+    template <>
+    void process_ticker_update<coinbase_api>(const Value& updates)
+    { }
+
+    template <>
+    void process_ticker_update<binance_api>(const Value& update)
+    { }
+
+private:
+    std::unordered_map<key_t, value_t> m_map;
+
+};
+
+
 typedef std::function<bool(const orderbook_t&)> feed_event_handler_t;
 typedef bool(*feed_event_handler_ptr)(const orderbook_t&, std::any& state);
 
 struct feed_event_t {
-    enum class event_type {
-        ASK_ORDERS_UPDATED=1,
-        SELL_ORDERS_UPDATED=2,
+    enum event_type : int8_t {
+        ORDERS_UPDATED=0x1,
+        TICKER_UPDATED=0x2,
         ALL=-1,
     };
+
+    feed_event_t(instrument_pair_t pair, event_type mask)
+        : product_pair{pair}, update_mask{mask}
+    {}
 
     instrument_pair_t product_pair;
     event_type update_mask;
