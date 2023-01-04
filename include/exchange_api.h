@@ -6,11 +6,12 @@
 #include <cstring>
 
 #include <string>
-#include <unordered_map>
+#include <map>
 #include <queue>
 #include <vector>
 #include <functional>
 #include <any>
+#include <chrono>
 
 template<typename T, typename... U>
 concept is_any = (std::same_as<T, U> || ...);
@@ -93,88 +94,31 @@ struct orderbook_t {
     typedef double value_t;
     typedef std::pair<double, double> order_t;
 
+    static constexpr const size_t GUARDED_SUBSET_SIZE = 10;
     const exchange_apis exchange;
     const instrument_pair_t pair;
 
-    // TODO: maybe use negative values to create max heap instead of using Compare?
-    template <size_t MaxSize, template <typename> typename Compare>
-    struct order_heap_t
+    struct ticker_t
     {
-        typedef Compare<order_t> compare_t;
-        typedef order_t* iterator;
-        typedef order_t*const const_iterator;
-
-        order_heap_t()
-            : m_heap{}, m_compare {}
-        {
-        }
-
-        bool pop(order_t* popped = nullptr)
-        {
-            if (m_size == 0)
-                return false;
-
-            const auto& begin {m_heap.begin()};
-            const auto& end   {begin + m_size};
-            std::pop_heap(begin, end, m_compare);
-
-            if (!popped)
-                *popped = *(begin + m_size - 1);
-
-            --m_size;
-            return true;
-        }
-
-        bool push(const order_t& order, order_t* popped)
-        {
-            auto& begin {m_heap.begin()};
-            auto& end   {begin + m_size};
-
-            *end = order;
-            std::push_heap(begin, end+1, m_compare);
-
-            if (m_size < MaxSize)
-            {
-                ++m_size;
-                return false;
-            }
-
-            *popped = *end;
-            return true;
-        }
-
-        void copy_vector(std::vector<order_t> &vec)
-        {
-            vec.resize(m_size);
-            std::memcpy(&vec[0], &m_heap[0], m_size * sizeof(order_t));
-        }
-
-        void copy_sorted_vector(std::vector<order_t> &vec)
-        {
-            vec.resize(m_size);
-            std::memcpy(&vec[0], &m_heap[0], m_size * sizeof(order_t));
-            std::sort_heap(vec.begin(), vec.end(), m_compare);
-        }
-
-        size_t size() const { return m_size; }
-
-        iterator begin()        { return m_heap.begin(); };
-        const_iterator cbegin() { return m_heap.cbegin(); };
-        iterator end()          { return m_heap.begin() + m_size; };
-        const_iterator cend()   { return m_heap.cbegin() + m_size; };
-
-
-    private:
-        std::array<order_t, MaxSize+1> m_heap;
-        size_t m_size;
-        const compare_t m_compare;
+        typedef std::chrono::time_point<std::chrono::system_clock, std::chrono::seconds> time_point;
+        instrument_pair_t pair;
+        double            price;
+        time_point        start;
+        time_point        end;
+        double            low;
+        double            high;
+        double            opening;
+        double            closing;
+        double            volume;
     };
 
-
     orderbook_t(instrument_pair_t pair, exchange_apis exchange_id)
-        : exchange{exchange_id}, pair {pair}, m_map{}
+        : exchange{exchange_id}, 
+          pair {pair}, m_bid_map{}, m_ask_map{},
+          m_guarded_bids{}, m_guarded_asks{}
     {
-
+        m_guarded_bids.reserve(GUARDED_SUBSET_SIZE);
+        m_guarded_asks.reserve(GUARDED_SUBSET_SIZE);
     }
 
     template <typename T, typename... Args>
@@ -189,23 +133,84 @@ struct orderbook_t {
 
     template <>
     void process_order_updates<coinbase_api>(const Value& updates)
-    { }
+    { 
+        if (!updates.IsArray())
+            return;
+
+        for (size_t i = 0; i < updates.Size(); ++i)
+        {
+            const Value& update   = updates[i];
+            const Value& side     = update["side"];
+            const Value& price    = update["price_level"];
+            const Value& quantity = update["new_quantity"];
+
+            const double price_d    = std::stold(price.GetString());
+            const double quantity_d = std::stold(quantity.GetString());
+
+            if (!std::strncmp("bid", side.GetString(), side.GetStringLength()))
+                update_bid(price_d, quantity_d);
+            else if (!std::strncmp("ask", side.GetString(), side.GetStringLength()))
+                update_ask(price_d, quantity_d);
+        }
+
+        update_guarded_bids();
+        update_guarded_asks();
+    }
 
     template <>
     void process_order_updates<binance_api>(const Value& bids, const Value& asks)
-    { }
+    {
+        if (bids.IsArray())
+        {
+            for (size_t i = 0; i < bids.Size(); ++i)
+            {
+                const Value& bid = bids[i];
+                if (!bid.IsArray()) continue;
+                const Value& price    = bid[0];
+                const Value& quantity = bid[1];
+
+                const double price_d    = std::stold(price.GetString());
+                const double quantity_d = std::stold(quantity.GetString());
+                update_bid(price_d, quantity_d);
+            }
+            update_guarded_bids();
+        }
+
+        if (asks.IsArray())
+        {
+            for (size_t i = 0; i < asks.Size(); ++i)
+            {
+                const Value& ask = asks[i];
+                if (!ask.IsArray()) continue;
+
+                const Value& price    = ask[0];
+                const Value& quantity = ask[1];
+
+                const double price_d    = std::stold(price.GetString());
+                const double quantity_d = std::stold(quantity.GetString());
+                update_ask(price_d, quantity_d);
+            }
+            update_guarded_asks();
+        }
+
+    }
 
     template <>
     void process_order_snapshot<coinbase_api>(const Value& updates)
-    { }
+    {
+        process_order_updates<coinbase_api>(updates);
+    }
 
     template <>
     void process_order_snapshot<binance_api>(const Value& bids, const Value& asks)
-    { }
+    { 
+        process_order_updates<binance_api>(bids, asks);
+    }
 
     template <>
     void process_ticker_update<coinbase_api>(const Value& updates)
-    { }
+    {
+    }
 
     template <>
     void process_ticker_update<binance_api>(const Value& update)
@@ -213,7 +218,87 @@ struct orderbook_t {
 
 
 private:
-    std::unordered_map<key_t, value_t> m_map;
+    std::map<key_t, value_t> m_bid_map;
+    std::map<key_t, value_t> m_ask_map;
+    ticker_t m_ticker;
+
+    std::vector<order_t>                         m_guarded_bids;
+    std::vector<order_t>                         m_guarded_asks;
+    std::mutex                                   m_mutex_bids;
+    std::mutex                                   m_mutex_asks;
+
+    void update_bid(double price, double quantity)
+    {
+        decltype(m_bid_map)::iterator it {m_bid_map.find(price)};
+        if (it == m_bid_map.end())
+        {
+            // price doesn't exist in map
+            if (quantity > 0) m_bid_map.emplace(price, quantity);
+            return;
+        }
+
+        if (quantity <= 0)
+        {
+            // remove price
+            m_bid_map.erase(price);
+            return;
+        }
+        else
+        {
+            // update price
+            it->second = quantity;
+        }
+    }
+
+    void update_ask(double price, double quantity)
+    {
+        decltype(m_ask_map)::iterator it {m_ask_map.find(price)};
+        if (it == m_ask_map.end())
+        {
+            // price doesn't exist in map
+            if (quantity > 0) m_ask_map.emplace(price, quantity);
+            return;
+        }
+
+        if (quantity <= 0)
+        {
+            // remove price
+            m_ask_map.erase(price);
+            return;
+        }
+        else
+        {
+            // update price
+            it->second = quantity;
+        }
+    }
+
+    void update_guarded_bids()
+    {
+        std::lock_guard<std::mutex> lock {m_mutex_bids};
+        // TODO: consider write to a local vector first then copy to member field with memcpy?
+        m_guarded_bids.clear();
+        const size_t size = std::min(GUARDED_SUBSET_SIZE, m_bid_map.size());
+
+        auto it  = m_bid_map.crbegin();
+        for(size_t i = 0; i < size; ++i, ++it)
+        {
+            m_guarded_bids.emplace_back(it->first, it->second);
+        }
+    }
+
+    void update_guarded_asks()
+    {
+        std::lock_guard<std::mutex> lock {m_mutex_asks};
+        m_guarded_asks.clear();
+        const size_t size = std::min(GUARDED_SUBSET_SIZE, m_ask_map.size());
+
+        auto it  = m_ask_map.cbegin();
+        for(size_t i = 0; i < size; ++i, ++it)
+        {
+            m_guarded_asks.emplace_back(it->first, it->second);
+        }
+    }
 
 };
 
