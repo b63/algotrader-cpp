@@ -3,8 +3,8 @@
 
 #include "json.h"
 #include "logger.h"
+#include "config.h"
 
-#define ASIO_STANDALONE
 #include <asio.hpp>
 #include <websocketpp/config/asio_client.hpp>
 #include <websocketpp/client.hpp>
@@ -25,9 +25,13 @@ struct market_feed_socket
     {
         using namespace std::placeholders;
 
+#ifdef WEBSOCKET_LOGS
         m_client.set_access_channels(websocketpp::log::alevel::all);
-        m_client.clear_access_channels(websocketpp::log::alevel::frame_payload);
+        //m_client.clear_access_channels(websocketpp::log::alevel::frame_payload);
         m_client.set_error_channels(websocketpp::log::elevel::all);
+#else
+        m_client.set_access_channels(websocketpp::log::alevel::none);
+#endif
 
         m_client.init_asio(&m_io_context);
 
@@ -119,6 +123,10 @@ private:
         std::string& payload {msg->get_raw_payload()};
         if (!payload.ends_with('\0'))
             payload.push_back('\0');
+
+#ifdef MESSAGE_PAYLOAD_LOG
+        log("> {}", payload);
+#endif
 
         Document json;
         json.ParseInsitu(payload.data());
