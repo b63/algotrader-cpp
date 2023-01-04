@@ -205,7 +205,7 @@ struct requests_t {
     }
 
 
-    size_t fetch_all(std::vector<int>& status)
+    size_t fetch_all(std::vector<CURLcode>& status)
     {
         const size_t n = m_request_args.size();
         std::vector<std::pair<CURL*, curl_slist*>>   handles;
