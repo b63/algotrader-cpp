@@ -45,7 +45,7 @@ int main(int argc, const char **argv)
                   .as_string());
 
     // block until all requests are complete
-    std::vector<int> status;
+    std::vector<CURLcode> status;
     size_t res = req.fetch_all(status);
 
     if (res != 0)
