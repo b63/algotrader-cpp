@@ -101,15 +101,16 @@ struct orderbook_t {
     struct ticker_t
     {
         typedef std::chrono::time_point<std::chrono::system_clock, std::chrono::seconds> time_point;
+        // wrapper type to encapsulate movement of market from time point `start` to `end`
         instrument_pair_t pair;
-        double            price;
-        time_point        start;
-        time_point        end;
-        double            low;
-        double            high;
-        double            opening;
-        double            closing;
-        double            volume;
+        double            price;   // average price
+        double            low;     // lowest price during the interval
+        double            high;    // highest price during the interval
+        double            opening; // opening price for the interval
+        double            closing; // closing price for the interval
+        double            volume;  // total volume for the interval
+        time_point        start;   // starting time point for the interval
+        time_point        end;     // ending time poing for the interval
     };
 
     orderbook_t(instrument_pair_t pair, exchange_apis exchange_id)
@@ -210,17 +211,21 @@ struct orderbook_t {
     template <>
     void process_ticker_update<coinbase_api>(const Value& updates)
     {
+        // TODO: coinbase doesn't price much informaiton (like opening price/closing price) or
+        //       a configurable time window, calculate it ourselves based on local order book?
     }
 
     template <>
     void process_ticker_update<binance_api>(const Value& update)
-    { }
+    {
+        // TODO
+    }
 
 
 private:
     std::map<key_t, value_t> m_bid_map;
     std::map<key_t, value_t> m_ask_map;
-    ticker_t m_ticker;
+    //ticker_t m_ticker;
 
     std::vector<order_t>                         m_guarded_bids;
     std::vector<order_t>                         m_guarded_asks;
