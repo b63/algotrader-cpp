@@ -98,6 +98,30 @@ private:
         return true;
     }
 
+    void notify_event_handlers(feed_event_t::event_type mask, const orderbook_t& book)
+    {
+        const instrument_pair_t& source_pair{book.pair};
+        feed_event_t event {source_pair, mask};
+        // notify raw handlers first
+        for (auto& [ev, handler_ptr, state] : m_raw_handlers)
+        {
+            if (!(mask & ev.update_mask) || source_pair != ev.product_pair)
+                continue;
+
+            if (!handler_ptr(book, state))
+                return;
+        }
+
+        // notify callable handlers
+        for (auto& [ev, callable] : m_handlers)
+        {
+            if (!(mask & ev.update_mask) || source_pair != ev.product_pair)
+                continue;
+
+            if (!callable(book))
+                return;
+        }
+    }
     void add_subscribe_messages()
     {
         using namespace rapidjson;
