@@ -35,7 +35,9 @@ public:
     {
         for (auto& pair : m_pairs)
         {
-            m_orderbooks.emplace(instrument_pair::to_coinbase(pair), orderbook_t{pair, binance_api::exchange_api_id});
+            m_orderbooks.emplace(std::piecewise_construct,
+                    std::forward_as_tuple(instrument_pair::to_coinbase(pair)),
+                    std::forward_as_tuple(pair, coinbase_api::exchange_api_id));
         }
     }
 
@@ -62,6 +64,7 @@ public:
     void close()
     {
         if (!m_socket) return;
+        // TODO: send unsubscribe message before closing?
 
         m_socket->close();
     }
@@ -157,7 +160,7 @@ private:
         // notify raw handlers first
         for (auto& [ev, handler_ptr, state] : m_raw_handlers)
         {
-            if (!(mask & ev.update_mask) || source_pair != ev.product_pair)
+            if (!(mask & ev.update_mask) || source_pair != ev.product_pair))
                 continue;
 
             if (!handler_ptr(book, state))
@@ -167,7 +170,7 @@ private:
         // notify callable handlers
         for (auto& [ev, callable] : m_handlers)
         {
-            if (!(mask & ev.update_mask) || source_pair != ev.product_pair)
+            if (!(mask & ev.update_mask) || source_pair != ev.product_pair))
                 continue;
 
             if (!callable(book))
@@ -229,6 +232,8 @@ private:
         // assert(events.IsArray())
         for (size_t i = 0; i < events.Size(); ++i)
         {
+            // TODO: either check for existence of memebers before using [] on Value types
+            //       or have a enclosing try-catch somewhere
             const Value& event      = events[i];
             const Value& type       = event["type"];
             const Value& product_id = event["product_id"];
@@ -238,15 +243,14 @@ private:
                 continue;
             orderbook_t& orderbook = key_val->second;
 
-
             if (!std::strncmp("update", type.GetString(), type.GetStringLength()))
             {
-                orderbook.process_order_updates<coinbase_api>(events["updates"]);
+                orderbook.process_order_updates<coinbase_api>(event["updates"]);
                 notify_event_handlers(feed_event_t::ORDERS_UPDATED, orderbook);
             }
             else if (!std::strncmp("snapshot", type.GetString(), type.GetStringLength()))
             {
-                orderbook.process_order_snapshot<coinbase_api>(events["updates"]);
+                orderbook.process_order_snapshot<coinbase_api>(event["updates"]);
                 notify_event_handlers(feed_event_t::ORDERS_UPDATED, orderbook);
             }
             else
