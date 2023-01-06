@@ -30,7 +30,9 @@ public:
     {
         for (auto& pair : m_pairs)
         {
-            m_orderbooks.emplace(instrument_pair::to_binance(pair), orderbook_t{pair, binance_api::exchange_api_id});
+            m_orderbooks.emplace(std::piecewise_construct,
+                    std::forward_as_tuple(instrument_pair::to_binance(pair)),
+                    std::forward_as_tuple(pair, binance_api::exchange_api_id));
         }
     }
 
