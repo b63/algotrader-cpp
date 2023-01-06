@@ -245,15 +245,58 @@ struct orderbook_t {
     }
 
 
+    void copy_guarded_bids(std::vector<order_t>& dst) const
+    {
+        const size_t size = m_guarded_bids.size();
+        dst.resize(size);
+        if (size == 0)
+            return;
+
+        std::lock_guard<std::mutex> lock{m_mutex_bids};
+
+        std::memcpy(&dst[0], &m_guarded_bids[0], sizeof(order_t) * size);
+    }
+
+    void copy_guarded_asks(std::vector<order_t>& dst) const
+    {
+        const size_t size = m_guarded_asks.size();
+        dst.resize(size);
+        if (size == 0)
+            return;
+
+        std::lock_guard<std::mutex> lock{m_mutex_asks};
+
+        std::memcpy(&dst[0], &m_guarded_asks[0], sizeof(order_t) * size);
+    }
+
+    map_t::const_iterator ask_iterator() const
+    { return m_ask_map.cbegin(); }
+
+    map_t::const_iterator ask_iterator_end() const
+    { return m_ask_map.cend(); }
+
+    size_t asks_size() const
+    { return m_ask_map.size(); }
+
+    map_t::const_reverse_iterator bid_iterator() const
+    { return m_bid_map.crbegin(); }
+
+    map_t::const_reverse_iterator bid_iterator_end() const
+    { return m_bid_map.crend(); }
+
+    size_t bids_size() const
+    { return m_bid_map.size(); }
+
+
 private:
-    std::map<key_t, value_t> m_bid_map;
-    std::map<key_t, value_t> m_ask_map;
+    map_t m_bid_map;
+    map_t m_ask_map;
     //ticker_t m_ticker;
 
-    std::vector<order_t>                         m_guarded_bids;
-    std::vector<order_t>                         m_guarded_asks;
-    std::mutex                                   m_mutex_bids;
-    std::mutex                                   m_mutex_asks;
+    std::vector<order_t>  m_guarded_bids;
+    std::vector<order_t>  m_guarded_asks;
+    mutable std::mutex    m_mutex_bids;
+    mutable std::mutex    m_mutex_asks;
 
     void update_bid(double price, double quantity)
     {
@@ -351,7 +394,7 @@ struct feed_event_t {
 
 /**
  * MarketFeed is any type that defines the following member functions:
- *     void start_feed(void) 
+ *     void start_feed(void)
  *         -> to spawn a thread and start listening for market feed updates
  *
  *     void join(void)
