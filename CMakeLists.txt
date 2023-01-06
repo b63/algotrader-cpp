@@ -39,6 +39,14 @@ include_directories(${OPENSSL_INCLUDE_DIR})
 set(CMAKE_CXX_FLAGS_DEBUG   ${CMAKE_CXX_FLAGS} "-Wall -Werror -O2 -flto -ggdb -stdlib=${CXX_STD_LIB}")
 set(CMAKE_CXX_FLAGS_RELEASE ${CMAKE_CXX_FLAGS} "-O3 -flto -stdlib=${CXX_STD_LIB}")
 
+function(add_test_executable name test_source sources)
+    LIST(TRANSFORM sources PREPEND "${CMAKE_SOURCE_DIR}/src/")
+
+    add_executable(${name} ${test_source} ${sources})
+    target_link_options(${name} PRIVATE ${OPENSSL_LIBRARIES})
+    target_link_libraries(${name} pthread ${CURL_LIBRARIES})
+endfunction()
+
 add_subdirectory(${CMAKE_SOURCE_DIR}/src)
 add_subdirectory(${CMAKE_SOURCE_DIR}/tests)
 add_subdirectory(${CMAKE_SOURCE_DIR}/tests/market_feed)

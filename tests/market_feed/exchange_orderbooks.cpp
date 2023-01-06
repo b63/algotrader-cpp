@@ -9,6 +9,10 @@
 #include <iostream>
 
 
+/**
+ * Test program that prints some local order book statistics every time
+ * it is updated a couple of seconds then quits.
+ */
 int main(void) {
     instrument_pair_t ethusd {instrument("ETH"), instrument("USD")};
     instrument_pair_t btcusd {instrument("BTC"), instrument("USD")};
