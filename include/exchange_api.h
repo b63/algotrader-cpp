@@ -47,7 +47,7 @@ struct instrument {
 
     friend bool operator==(const instrument& lhs, const instrument& rhs)
     {
-        return reinterpret_cast<uint64_t>(lhs._buf) == reinterpret_cast<uint64_t>(rhs._buf);
+        return *reinterpret_cast<const uint64_t*>(&lhs._buf) == *reinterpret_cast<const uint64_t*>(&rhs._buf);
     }
 
     private:
@@ -60,6 +60,16 @@ namespace instrument_pair {
     std::string to_coinbase(instrument_pair_t pair);
     std::string to_binance(instrument_pair_t pair);
     std::string to_binance_lower(instrument_pair_t pair);
+
+    inline bool same(const instrument_pair_t& lhs, const instrument_pair_t& rhs)
+    {
+        return lhs.first == rhs.first && lhs.second == rhs.second;
+    }
+}
+
+inline bool operator==(const instrument_pair_t& lhs, const instrument_pair_t& rhs)
+{
+    return lhs.first == rhs.first && lhs.second == rhs.second;
 }
 
 
