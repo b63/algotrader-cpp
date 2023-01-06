@@ -2,6 +2,7 @@
 #define _EXCHANGE_API_H
 
 #include "json.h"
+#include "logger.h"
 
 #include <cstring>
 
@@ -74,19 +75,30 @@ inline bool operator==(const instrument_pair_t& lhs, const instrument_pair_t& rh
 
 
 
-enum class exchange_apis {
+enum class exchange_api_t : int {
     COINBASE_ADVANCED,
     BINANCE,
     WEBULL
 };
 
+namespace exchange_api {
+    constexpr const char* to_string(exchange_api_t id)
+    {
+        if (id == exchange_api_t::COINBASE_ADVANCED)
+            return "Coinbase";
+        if (id == exchange_api_t::BINANCE)
+            return "Binance";
+        return "WeBull";
+    }
+};
+
 struct coinbase_api {
-    static constexpr const exchange_apis exchange_api_id = exchange_apis::COINBASE_ADVANCED;
+    static constexpr const exchange_api_t exchange_api_id = exchange_api_t::COINBASE_ADVANCED;
     static constexpr const char* SOCKET_URI = "wss://advanced-trade-ws.coinbase.com";
 };
 
 struct binance_api {
-    static constexpr const exchange_apis exchange_api_id = exchange_apis::BINANCE;
+    static constexpr const exchange_api_t exchange_api_id = exchange_api_t::BINANCE;
     static constexpr const char* SOCKET_URI = "wss://stream.binance.us:9443";
     static constexpr const char* SNAPSHOT_URL = "https://www.binance.us/api/v1/depth";
 };
@@ -102,10 +114,11 @@ class market_feed {};
 struct orderbook_t {
     typedef double key_t;
     typedef double value_t;
-    typedef std::pair<double, double> order_t;
+    typedef std::map<key_t, value_t> map_t;
+    typedef std::pair<key_t, value_t> order_t;
 
     static constexpr const size_t GUARDED_SUBSET_SIZE = 10;
-    const exchange_apis exchange;
+    const exchange_api_t exchange;
     const instrument_pair_t pair;
 
     struct ticker_t
@@ -123,7 +136,7 @@ struct orderbook_t {
         time_point        end;     // ending time poing for the interval
     };
 
-    orderbook_t(instrument_pair_t pair, exchange_apis exchange_id)
+    orderbook_t(instrument_pair_t pair, exchange_api_t exchange_id)
         : exchange{exchange_id}, 
           pair {pair}, m_bid_map{}, m_ask_map{},
           m_guarded_bids{}, m_guarded_asks{}
@@ -160,7 +173,7 @@ struct orderbook_t {
 
             if (!std::strncmp("bid", side.GetString(), side.GetStringLength()))
                 update_bid(price_d, quantity_d);
-            else if (!std::strncmp("ask", side.GetString(), side.GetStringLength()))
+            else if (!std::strncmp("offer", side.GetString(), side.GetStringLength()))
                 update_ask(price_d, quantity_d);
         }
 
