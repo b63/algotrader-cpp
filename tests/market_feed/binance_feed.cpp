@@ -1,6 +1,9 @@
 #include "binance_feed.h"
 #include <iostream>
 
+// verbose log
+#define WEBSOCKET_LOGS
+#define MESSAGE_PAYLOAD_LOG
 
 int main(void) {
     std::vector<instrument_pair_t> pairs;

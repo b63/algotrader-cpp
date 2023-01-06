@@ -160,7 +160,7 @@ private:
         // notify raw handlers first
         for (auto& [ev, handler_ptr, state] : m_raw_handlers)
         {
-            if (!(mask & ev.update_mask) || source_pair != ev.product_pair))
+            if (!(mask & ev.update_mask) || source_pair != ev.product_pair)
                 continue;
 
             if (!handler_ptr(book, state))
@@ -170,7 +170,7 @@ private:
         // notify callable handlers
         for (auto& [ev, callable] : m_handlers)
         {
-            if (!(mask & ev.update_mask) || source_pair != ev.product_pair))
+            if (!(mask & ev.update_mask) || source_pair != ev.product_pair)
                 continue;
 
             if (!callable(book))
