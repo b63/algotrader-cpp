@@ -6,7 +6,23 @@
 #include "exchange_api.h"
 #include "coinbase_feed.h"
 #include "binance_feed.h"
+
 #include <iostream>
+#include <chrono>
+#include <unordered_map>
+
+
+template <>
+struct std::hash<std::tuple<exchange_api_t, exchange_api_t, double, double>>
+{
+    size_t operator()(const std::tuple<exchange_api_t, exchange_api_t, double, double>& key) const noexcept {
+        // quick-and-dirty hash function
+       return static_cast<size_t>(std::get<0>(key)) 
+              ^ static_cast<size_t>(std::get<1>(key)) 
+              ^ std::hash<double>{}(std::get<2>(key))
+              ^ std::hash<double>{}(std::get<3>(key));
+    }
+};
 
 
 class TestTrader 
@@ -15,10 +31,40 @@ class TestTrader
         map_t;
     map_t m_guarded_book;
 
+    typedef std::tuple<exchange_api_t, exchange_api_t, double, double> arbritrage_order_t;
+
+    std::unordered_map<arbritrage_order_t, long> m_order_cache;
 
 public:
     TestTrader(instrument_pair_t product_pair)
+        : m_order_cache{}
     {}
+
+    static long get_current_time_point()
+    {
+        std::chrono::time_point<std::chrono::system_clock, std::chrono::seconds> now {std::chrono::time_point_cast<std::chrono::seconds>(std::chrono::system_clock::now())};
+        return now.time_since_epoch().count();
+    }
+
+    bool is_order_duplicate(exchange_api_t bid_exchange, double bid_price, exchange_api_t ask_exchange, double ask_price)
+    {
+        arbritrage_order_t o {bid_exchange, ask_exchange, bid_price, ask_price};
+        auto it {m_order_cache.find(o)};
+        if ( it == m_order_cache.end())
+        {
+            m_order_cache[o] = get_current_time_point();
+            return false;
+        }
+
+        long cur_time = get_current_time_point();
+        if (cur_time - it->second > 5)
+        {
+            it->second = cur_time;
+            return false;
+        }
+
+        return true;
+    }
 
 
     void find_max_profit_ask(exchange_api_t source_id, orderbook_t::order_t source_bid,
@@ -48,7 +94,7 @@ public:
 
         }
 
-        if (max_profit > 0)
+        if (max_profit > 0 && !is_order_duplicate(target_id, target_order->first, source_id, source_bid.first))
         {
             log("Maximum profit ask: {:f}, ({} -> {}) {:f} @ {:.5e} -> {:f} @ {:.5e}",
                     max_profit,
@@ -87,7 +133,7 @@ public:
         }
         // NOTE: need to think about how to about duplicates
 
-        if (max_profit > 0)
+        if (max_profit > 0 && !is_order_duplicate(source_id, source_ask.first, target_id, target_order->first))
         {
             log("Maximum profit bid: {:f}, ({} -> {}) {:f} @ {:.5e} -> {:f} @ {:.5e}",
                     max_profit,
