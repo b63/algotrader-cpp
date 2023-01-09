@@ -60,9 +60,27 @@ struct DocumentCreator
         return *this;
     }
 
+    template <typename KeyType, typename ValType>
+    DocumentCreator& AddMember(KeyType&& key, ValType&& val)
+    {
+        static auto& alloc = doc.GetAllocator();
+        doc.AddMember(std::forward<KeyType>(key), std::forward<KeyType>(val), alloc);
+        return *this;
+    }
+
+
     inline std::string as_string()
     {
         return to_string(doc);
+    }
+
+    void write_string(std::string& dst)
+    {
+        StringBuffer buffer;
+        StringBufferWriter writer(buffer);
+        doc.Accept(writer);
+
+        dst = std::string(buffer.GetString());
     }
 };
 
