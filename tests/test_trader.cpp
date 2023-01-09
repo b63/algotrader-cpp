@@ -6,7 +6,23 @@
 #include "exchange_api.h"
 #include "coinbase_feed.h"
 #include "binance_feed.h"
+
 #include <iostream>
+#include <chrono>
+#include <unordered_map>
+
+
+template <>
+struct std::hash<std::tuple<exchange_api_t, exchange_api_t, double, double>>
+{
+    size_t operator()(const std::tuple<exchange_api_t, exchange_api_t, double, double>& key) const noexcept {
+        // quick-and-dirty hash function
+       return static_cast<size_t>(std::get<0>(key))
+              ^ static_cast<size_t>(std::get<1>(key))
+              ^ std::hash<double>{}(std::get<2>(key))
+              ^ std::hash<double>{}(std::get<3>(key));
+    }
+};
 
 
 class TestTrader 
