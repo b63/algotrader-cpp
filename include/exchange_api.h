@@ -95,6 +95,8 @@ namespace exchange_api {
 struct coinbase_api {
     static constexpr const exchange_api_t exchange_api_id = exchange_api_t::COINBASE_ADVANCED;
     static constexpr const char* SOCKET_URI = "wss://advanced-trade-ws.coinbase.com";
+    static constexpr const char* BASE_API_URL = "https://api.coinbase.com";
+    static constexpr const char* CREATE_ORDER_PATH = "/api/v3/brokerage/orders";
 };
 
 struct binance_api {

@@ -96,7 +96,7 @@ public:
 
         if (max_profit > 0 && !is_order_duplicate(target_id, target_order->first, source_id, source_bid.first))
         {
-            log("Maximum profit ask: {:f}, ({} -> {}) {:f} @ {:.5e} -> {:f} @ {:.5e}",
+            log("Maximum profit ask: $ {:f}, ({} -> {}) {:f} @ {:.5e} -> {:f} @ {:.5e}",
                     max_profit,
                     exchange_api::to_string(target_id),
                     exchange_api::to_string(source_id),
@@ -135,7 +135,7 @@ public:
 
         if (max_profit > 0 && !is_order_duplicate(source_id, source_ask.first, target_id, target_order->first))
         {
-            log("Maximum profit bid: {:f}, ({} -> {}) {:f} @ {:.5e} -> {:f} @ {:.5e}",
+            log("Maximum profit bid: $ {:f}, ({} -> {}) {:f} @ {:.5e} -> {:f} @ {:.5e}",
                     max_profit,
                     exchange_api::to_string(source_id),
                     exchange_api::to_string(target_id),
