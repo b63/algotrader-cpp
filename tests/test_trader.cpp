@@ -50,7 +50,7 @@ public:
 
         if (max_profit > 0)
         {
-            log("Maximum profit ask: {:f}, ({} -> {}) {:f} @ {:.5e} -> {:f} @ {:.5e}",
+            log("Maximum profit ask: $ {:f}, ({} -> {}) {:f} @ {:.5e} -> {:f} @ {:.5e}",
                     max_profit,
                     exchange_api::to_string(target_id),
                     exchange_api::to_string(source_id),
@@ -89,7 +89,7 @@ public:
 
         if (max_profit > 0)
         {
-            log("Maximum profit bid: {:f}, ({} -> {}) {:f} @ {:.5e} -> {:f} @ {:.5e}",
+            log("Maximum profit bid: $ {:f}, ({} -> {}) {:f} @ {:.5e} -> {:f} @ {:.5e}",
                     max_profit,
                     exchange_api::to_string(source_id),
                     exchange_api::to_string(target_id),
