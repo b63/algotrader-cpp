@@ -99,6 +99,8 @@ struct coinbase_api {
     static constexpr const char* CREATE_ORDER_PATH = "/api/v3/brokerage/orders";
     static constexpr const char* CANCEL_ORDER_PATH = "/api/v3/brokerage/orders/batch_cancel";
     static constexpr const char* GET_ORDER_PATH = "/api/v3/brokerage/orders/historical";
+    static constexpr const char* GET_ACCOUNT_PATH = "/api/v3/brokerage/accounts";
+    static constexpr const char* LIST_ACCOUNTS_PATH = "/api/v3/brokerage/accounts";
 };
 
 struct binance_api {
