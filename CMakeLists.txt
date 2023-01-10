@@ -36,9 +36,9 @@ endif()
 message(STATUS "OPENSSL_INCLUDE_DIR = ${OPENSSL_INCLUDE_DIR}")
 include_directories(${OPENSSL_INCLUDE_DIR})
 
-# for CONFIG_BUILD_TYPE=Debug
+# for CMAKE_BUILD_TYPE=Debug
 set(CMAKE_CXX_FLAGS_DEBUG   ${CMAKE_CXX_FLAGS} "-Wall -Werror -O2 -flto -ggdb -stdlib=${CXX_STD_LIB}")
-# for CONFIG_BUILD_TYPE=Release
+# for CMAKE_BUILD_TYPE=Release
 set(CMAKE_CXX_FLAGS_RELEASE ${CMAKE_CXX_FLAGS} "-O3 -flto -stdlib=${CXX_STD_LIB}")
 
 function(add_test_executable name test_source sources)
