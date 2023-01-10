@@ -6,7 +6,8 @@
 #include <rapidjson/error/en.h>
 #include <rapidjson/stringbuffer.h>
 
-#include<typeinfo>
+#include <typeinfo>
+#include <optional>
 
 
 typedef rapidjson::Document Document;
@@ -18,6 +19,76 @@ typedef rapidjson::Writer<StringBuffer> StringBufferWriter;
 
 
 Document from_string(const std::string& json_str);
+
+template<typename T, typename... Keys>
+std::optional<Value::ConstMemberIterator> get_json_member(const T& doc, Keys&&... keys)
+{
+    if (!doc.IsObject())
+        return std::nullopt;
+
+    Value::ConstMemberIterator val_it;
+    bool first = true;
+
+    for (decltype(auto) key : {keys...})
+    {
+        if (first)
+        {
+            first = false;
+            val_it = doc.FindMember(key);
+            if (val_it == doc.MemberEnd())
+                return std::nullopt;
+            continue;
+        }
+
+        if (!val_it->value.IsObject())
+            return std::nullopt;
+
+        Value::ConstMemberIterator new_val = val_it->value.FindMember(key);
+        if (new_val == val_it->value.MemberEnd())
+        { return std::nullopt; }
+
+        val_it = new_val;
+    }
+
+    return first ? std::nullopt : std::optional<Value::ConstMemberIterator>(val_it);
+}
+
+template<typename T, typename... Keys>
+std::optional<std::string> get_json_string(const T& doc, Keys&&... keys)
+{
+    if (!doc.IsObject())
+        return std::nullopt;
+
+    Value::ConstMemberIterator val_it;
+    bool first = true;
+
+    for (decltype(auto) key : {keys...})
+    {
+        if (first)
+        {
+            first = false;
+            val_it = doc.FindMember(key);
+            if (val_it == doc.MemberEnd())
+                return std::nullopt;
+            continue;
+        }
+
+        if (!val_it->value.IsObject())
+            return std::nullopt;
+
+        Value::ConstMemberIterator new_val = val_it->value.FindMember(key);
+        if (new_val == val_it->value.MemberEnd())
+        { return std::nullopt; }
+
+        val_it = new_val;
+    }
+
+    if (!first && val_it->value.IsString())
+        return std::optional<std::string>(std::in_place, val_it->value.GetString());
+
+    return std::nullopt;
+}
+
 
 template <typename Key, typename... Args>
 constexpr void add_or_overwrite_member(Document &d, Key&& key, Args&&... args)
@@ -71,7 +142,7 @@ struct DocumentCreator<Document>
     DocumentCreator& AddMember(KeyType&& key, ValType&& val)
     {
         static auto& alloc = doc.GetAllocator();
-        doc.AddMember(std::forward<KeyType>(key), std::forward<KeyType>(val), alloc);
+        doc.AddMember(key, val, alloc);
         return *this;
     }
 
