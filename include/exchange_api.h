@@ -97,6 +97,7 @@ struct coinbase_api {
     static constexpr const char* SOCKET_URI = "wss://advanced-trade-ws.coinbase.com";
     static constexpr const char* BASE_API_URL = "https://api.coinbase.com";
     static constexpr const char* CREATE_ORDER_PATH = "/api/v3/brokerage/orders";
+    static constexpr const char* CANCEL_ORDER_PATH = "/api/v3/brokerage/orders/batch_cancel";
     static constexpr const char* GET_ORDER_PATH = "/api/v3/brokerage/orders/historical";
 };
 

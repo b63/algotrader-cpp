@@ -1,5 +1,6 @@
 #include "requests.h"
 #include "json.h"
+#include "config.h"
 #include <iostream>
 #include <chrono>
 
@@ -37,11 +38,11 @@ int main(int argc, const char **argv)
        .add_header("CB-ACCESS-KEY", "PUBLIC-API-KEY-GOES-HERE")
        .add_header("CB-ACCESS-TIMESTAMP", "123443555")
        .add_header("CB-ACCESS-SIGN", "HMAC hex digest of <timestamp><method><request path><body>")
-       .set_data(DocumentCreator()
+       .set_data(DocumentCreator<Document>()
                   .AddString("client_order_id", "232323")
                   .AddString("product_id", "BTC-USD")
                   .AddString("product_id", "BTC-USD")
-                  .AddStringRef("end_time", ts)
+                  .AddString("end_time", ts)
                   .as_string());
 
     // block until all requests are complete

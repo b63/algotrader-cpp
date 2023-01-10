@@ -6,6 +6,8 @@
 #include <rapidjson/error/en.h>
 #include <rapidjson/stringbuffer.h>
 
+#include<typeinfo>
+
 
 typedef rapidjson::Document Document;
 typedef rapidjson::Value Value;
@@ -38,22 +40,27 @@ std::string to_string(const T& json)
     return std::string{buffer.GetString()};
 }
 
-struct DocumentCreator
+template <typename T>
+    requires std::same_as<T, rapidjson::Document> || std::same_as<T, Value>
+struct DocumentCreator{};
+
+template <>
+struct DocumentCreator<Document>
 {
     Document doc;
     DocumentCreator() : doc{rapidjson::kObjectType}
     {};
 
-    template <typename KeyType, typename StrType>
-    DocumentCreator& AddString(KeyType&& key, StrType&& str)
+    template <typename KeyType>
+    DocumentCreator& AddString(KeyType&& key, const char* str)
     {
         static auto& alloc = doc.GetAllocator();
-        doc.AddMember(std::forward<KeyType>(key), Value().SetString(std::forward<StrType>(str), alloc), alloc);
+        doc.AddMember(std::forward<KeyType>(key), Value().SetString(str, alloc), alloc);
         return *this;
     }
 
-    template <typename KeyType, typename StrType>
-    DocumentCreator& AddStringRef(KeyType&& key, StrType&& str)
+    template <typename KeyType>
+    DocumentCreator& AddString(KeyType&& key, const std::string& str)
     {
         static auto& alloc = doc.GetAllocator();
         doc.AddMember(std::forward<KeyType>(key), Value().SetString(str.c_str(), str.length(), alloc), alloc);
@@ -84,6 +91,39 @@ struct DocumentCreator
     }
 };
 
+
+template <>
+struct DocumentCreator<Value>
+{
+    Value value;
+    Document& doc;
+    DocumentCreator(Document& doc, rapidjson::Type type = rapidjson::kObjectType) : value{type}, doc{doc}
+    {};
+
+    template <typename KeyType>
+    DocumentCreator& AddString(KeyType&& key, const char* str)
+    {
+        static auto& alloc = doc.GetAllocator();
+        doc.AddMember(std::forward<KeyType>(key), Value().SetString(str, alloc), alloc);
+        return *this;
+    }
+
+    template <typename KeyType>
+    DocumentCreator& AddString(KeyType&& key, const std::string& str)
+    {
+        static auto& alloc = doc.GetAllocator();
+        doc.AddMember(std::forward<KeyType>(key), Value().SetString(str.c_str(), str.length(), alloc), alloc);
+        return *this;
+    }
+
+    template <typename KeyType, typename ValType>
+    DocumentCreator& AddMember(KeyType&& key, ValType&& val)
+    {
+        static auto& alloc = doc.GetAllocator();
+        doc.AddMember(std::forward<KeyType>(key), std::forward<KeyType>(val), alloc);
+        return *this;
+    }
+};
 
 
 #endif

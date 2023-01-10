@@ -47,7 +47,7 @@ void hmac(const std::string& msg, const std::string& key, std::string& digest)
         if (rc != 1) throw std::runtime_error("EVP_DigestSignFinal (2) failed with " + std::to_string(ERR_get_error()));
 
         digest = to_hex_string(digest);
-        log("digest size: {:d}", req);
+        //log("digest size: {:d}", req);
 
         EVP_MD_CTX_free(ctx);
         ctx = nullptr;

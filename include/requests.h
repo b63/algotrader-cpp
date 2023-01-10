@@ -3,6 +3,7 @@
 
 #include "fmt/core.h"
 #include "logger.h"
+#include "config.h"
 
 #include <curl/curl.h>
 
@@ -143,6 +144,7 @@ private:
 
 
 struct requests_t {
+    typedef std::vector<CURLcode> statuses_t;
 
 
     struct reader_state_t
@@ -150,8 +152,8 @@ struct requests_t {
         size_t pos = 0;
         const std::string *string_ptr;
 
-        reader_state_t(std::string *source) : string_ptr{source} 
-        {};
+        reader_state_t(std::string *source) : string_ptr{source}
+        {}
 
         reader_state_t(const reader_state_t&) = default;
         reader_state_t(reader_state_t&&) = default;
@@ -188,7 +190,8 @@ struct requests_t {
 
     std::string get_error_msg(size_t index, CURLcode error_code)
     {
-        std::string buf_str {static_cast<const char*>(m_error_buf[index].data())};
+        std::string buf_str {static_cast<const char*>((m_error_buf[index]).data())};
+
         if (buf_str.size() > 0)
             return buf_str;
 
@@ -310,6 +313,11 @@ private:
         curl_easy_setopt(handle, CURLOPT_WRITEDATA, &m_responses[i]);
         curl_easy_setopt(handle, CURLOPT_WRITEFUNCTION, &requests_t::write_callback);
         curl_easy_setopt(handle, CURLOPT_ERRORBUFFER, m_error_buf[i].data());
+#ifdef VERBOSE_CURL_REQUESTS
+        curl_easy_setopt(handle, CURLOPT_DEBUGFUNCTION, &requests_t::debug_callback);
+        curl_easy_setopt(handle, CURLOPT_DEBUGDATA, this);
+        curl_easy_setopt(handle, CURLOPT_VERBOSE, 1L);
+#endif
 
         if(m_request_args[i].type == ReqType::POST)
         {
@@ -331,7 +339,7 @@ private:
         struct curl_slist* temp  = nullptr;
         for (const auto& [key_it, value_it] : m_request_args[i])
         {
-            std::string header_str {*key_it + *value_it};
+            std::string header_str {*key_it + ": " + *value_it};
             temp = curl_slist_append(slist, header_str.c_str());
 
             if (!temp)
@@ -373,6 +381,48 @@ private:
         ss.write(reinterpret_cast<const char*>(contents), size*bytes);
 
         return size*bytes;
+    }
+
+    static int debug_callback(CURL* handle, curl_infotype type, char* data, size_t size, void* this_ptr)
+    {
+        //requests_t& _this = *reinterpret_cast<requests_t*>(this_ptr);
+        std::string prefix;
+        bool ssl_data = false;
+        switch(type)
+        {
+            case CURLINFO_TEXT:
+                log_noln("== Info: {}", std::string(data, size));
+                // explicit fallthrough
+            default:
+                return 0;
+
+            case CURLINFO_HEADER_OUT:
+                prefix = "=> Send header";
+                break;
+            case CURLINFO_DATA_OUT:
+                prefix = "=> Send data";
+                break;
+            case CURLINFO_SSL_DATA_OUT:
+                ssl_data = true;
+                prefix = "=> Send SSL data";
+                break;
+            case CURLINFO_HEADER_IN:
+                prefix = "<= Recv header";
+                break;
+            case CURLINFO_SSL_DATA_IN:
+                ssl_data = true;
+                prefix = "<= Recv SSL data";
+                break;
+        }
+
+        if (!ssl_data)
+        {
+            log("{}\n{}", prefix, std::string(data, size));
+            return 0;
+        }
+
+        log("{}: {:d} bytes", prefix, size);
+        return 0;
     }
 
     std::vector<request_args_t>                m_request_args;
