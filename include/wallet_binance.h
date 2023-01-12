@@ -43,7 +43,7 @@ private:
             .add_header("X-MBX-APIKEY", m_api_key)
             .add_header("Connection", "close")
             .add_url_param("orderId", order_id)
-            .add_url_param("recvWindow", std::to_string(4000))
+            .add_url_param("recvWindow", std::to_string(5000))
             .add_url_param("timestamp", std::to_string(time_ms));
 
         std::string signature {sign_payload(rargs, "")};
@@ -100,22 +100,25 @@ public:
     { }
 
 
-    void create_limit_order_request(requests_t& req, const std::string& side, instrument_pair_t pair, double limit_price, double quantity)
+
+    void create_limit_order_request(requests_t& req, SIDE side, instrument_pair_t pair, double limit_price, double quantity)
     {
         const std::string url {std::format("{}{}", binance_api::BASE_API_URL, binance_api::CREATE_ORDER_PATH)};
 
         long time_ms {std::chrono::time_point_cast<std::chrono::milliseconds>(std::chrono::system_clock::now()).time_since_epoch().count()};
 
+        std::string limit_price_str { side == SIDE::BUY ? round_bid_price_to_precision(limit_price, 4) : round_ask_price_to_precision(limit_price, 4)};
         request_args_t& rargs = req.add_request(url, ReqType::POST)
             .add_header("X-MBX-APIKEY", m_api_key)
             .add_header("Connection", "close")
             .add_url_param("symbol", instrument_pair::to_binance(pair))
-            .add_url_param("side", side)
+            .add_url_param("side", order_status::side_to_string(side))
             .add_url_param("type", "LIMIT")
+            .add_url_param("quantity", round_quantity_to_precision(quantity, 4))
             .add_url_param("timeInForce", "IOC")
-            .add_url_param("quantity", std::to_string(quantity))
-            .add_url_param("price", std::to_string(limit_price))
-            .add_url_param("recvWindow", std::to_string(4000))
+            //.add_url_param("stopLimitTimeInForce", std::to_string(5000))
+            .add_url_param("price", limit_price_str)
+            .add_url_param("recvWindow", std::to_string(5000))
             .add_url_param("timestamp", std::to_string(time_ms));
 
         std::string signature {sign_payload(rargs, "")};
@@ -170,7 +173,7 @@ public:
     {
         requests_t req;
         requests_t::statuses_t codes;
-        create_limit_order_request(req, "SELL", pair, limit_price, quantity);
+        create_limit_order_request(req, SIDE::SELL, pair, limit_price, quantity);
         req.fetch_all(codes);
         return parse_create_limit_order_request(req, codes, 0);
     }
@@ -179,7 +182,7 @@ public:
     {
         requests_t req;
         requests_t::statuses_t codes;
-        create_limit_order_request(req, "BUY", pair, limit_price, quantity);
+        create_limit_order_request(req, SIDE::BUY, pair, limit_price, quantity);
         req.fetch_all(codes);
 
         return parse_create_limit_order_request(req, codes, 0);
@@ -198,7 +201,7 @@ public:
             .add_header("Connection", "close")
             .add_url_param("symbol", instrument_pair::to_binance(pair))
             .add_url_param("orderId", order_id)
-            .add_url_param("recvWindow", std::to_string(4000))
+            .add_url_param("recvWindow", std::to_string(6000))
             .add_url_param("timestamp", std::to_string(time_ms));
 
         std::string signature {sign_payload(rargs, "")};
@@ -256,7 +259,7 @@ public:
         request_args_t& rargs = req.add_request(url, ReqType::GET)
             .add_header("X-MBX-APIKEY", m_api_key)
             .add_header("Connection", "close")
-            .add_url_param("recvWindow", std::to_string(4000))
+            //.add_url_param("recvWindow", std::to_string(6000))
             .add_url_param("timestamp", std::to_string(time_ms));
 
         std::string signature {sign_payload(rargs, "")};

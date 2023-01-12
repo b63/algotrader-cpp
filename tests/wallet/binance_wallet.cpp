@@ -17,21 +17,19 @@
  */
 int main(int argc, char** argv)
 {
-    if (argc != 2)
+    if (argc != 3)
     {
-        log("test-binance-wallet <price>");
+        log("test-binance-wallet <price> <dollars to spend>");
         return 1;
     }
 
     double price = std::stod(argv[1]);
+    double spend = std::stod(argv[2]);
 
-    const double QUANTITY = 1/price;
+    const double QUANTITY = spend/price;
 
-    wallet<binance_api> w {"bD9QfIu4FBdRJpviWI075M6KMX2lb9oUyLfC2IknlE4vcIbnFKQaeSm8f0vLW8te", "AfqGK6Jf8HQGiI93RC7jYDJMKVS9cMlc4adhvcXeMSOSUKQEIkmIV9SmeZDu0kd5"};
+    wallet<binance_api> w {"EiWengYbNGKsEcKoeHlf8kIT3Z8jfHRd53UfEeckVIJpTSqDJYEiuPtviE6pVKU9", "F3qkDsWhvZOukntRHDwucLFjDXEu6BYuJIwUTNrZ4cI8mWuUdK2LxvRREzE6gxtR"};
     instrument_pair_t pair {instrument("ETH"), instrument("USD")};
-
-    log("--- getting balance ---");
-    log("USD BALANCE: {}", w.get_asset_account_balance("USD").value_or(std::nan("")));
 
     log("--- getting balance ---");
     log("USD BALANCE: {}", w.get_asset_account_balance("USD").value_or(std::nan("")));

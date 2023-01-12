@@ -145,23 +145,24 @@ public:
         : m_api_key {api_key}, m_secret_key{secret_key}
     { }
 
-    void create_limit_order_request(requests_t& req, const std::string& side, instrument_pair_t pair, double limit_price, double quantity)
+    void create_limit_order_request(requests_t& req, SIDE side, instrument_pair_t pair, double limit_price, double quantity)
     {
         const std::string url {std::format("{}{}", coinbase_api::BASE_API_URL, coinbase_api::CREATE_ORDER_PATH)};
 
+        std::string limit_price_str {side == SIDE::BUY ? round_bid_price_to_precision(limit_price, 8) : round_ask_price_to_precision(limit_price, 8)};
         // see API reference: https://docs.cloud.coinbase.com/advanced-trade-api/reference/retailbrokerageapi_postorder
         DocumentCreator<Document> dc;
         auto& alloc = dc.doc.GetAllocator();
 
         dc.doc.AddMember("client_order_id", Value().SetString(generate_order_uuid().c_str(), alloc), alloc); // TODO: make use of uuid?
         dc.doc.AddMember("product_id", Value().SetString(instrument_pair::to_coinbase(pair).c_str(), alloc), alloc);
-        dc.doc.AddMember("side", Value().SetString(side.c_str(), alloc), alloc);
+        dc.doc.AddMember("side", Value().SetString(order_status::side_to_string(side).c_str(), alloc), alloc);
 
         Value order_config (rapidjson::kObjectType);
         order_config.AddMember("limit_limit_gtd",
                 Value(rapidjson::kObjectType)
                     .AddMember("base_size",   Value().SetString(std::to_string(quantity).c_str(), alloc),    alloc)
-                    .AddMember("limit_price", Value().SetString(std::to_string(limit_price).c_str(), alloc), alloc)
+                    .AddMember("limit_price", Value().SetString(limit_price_str.c_str(), alloc), alloc)
                     .AddMember("end_time",    Value().SetString(time_string(10).c_str(), alloc),              alloc)
                     .AddMember("post_only",   Value().SetBool(false), alloc),
                 alloc);
@@ -186,7 +187,7 @@ public:
 
     bool parse_create_limit_order_request(requests_t& req, requests_t::statuses_t& statues, size_t index, std::string& order_id_ref)
     {
-        // log("create_immediate_{}_order: sending request {}", side, payload);
+        // log("create_immediate_{}_order: sending request {}", order_status::side_to_string(side), payload);
         if (statues.at(index) > 0)
         {
             log("ERROR create limit order request to {} failed with {}", 
@@ -318,7 +319,7 @@ public:
     {
         requests_t req;
         requests_t::statuses_t statuses;
-        create_limit_order_request(req, "SELL", pair, limit_price, quantity);
+        create_limit_order_request(req, SIDE::SELL, pair, limit_price, quantity);
         req.fetch_all(statuses);
         return parse_create_limit_order_request(req, statuses, 0, order_id_ref);
     }
@@ -328,7 +329,7 @@ public:
     {
         requests_t req;
         requests_t::statuses_t statuses;
-        create_limit_order_request(req, "BUY", pair, limit_price, quantity);
+        create_limit_order_request(req, SIDE::BUY, pair, limit_price, quantity);
         req.fetch_all(statuses);
 
         return parse_create_limit_order_request(req, statuses, 0, order_id_ref);

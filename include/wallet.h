@@ -24,6 +24,7 @@ enum class SIDE: int {
     UNKNOWN
 };
 
+
 enum class STATUS: int {
     FILLED,
     OPEN,
@@ -42,6 +43,19 @@ struct order_status
     std::string order_id;
     SIDE side;
     STATUS status;
+
+    static std::string side_to_string(SIDE side)
+    {
+        switch(side)
+        {
+            case SIDE::BUY:
+                return "BUY";
+            case SIDE::SELL:
+                return "SELL";
+            case SIDE::UNKNOWN:
+                return "UNKNOWN";
+        }
+    }
 
     static SIDE side_from_string(const std::string& str)
     {
