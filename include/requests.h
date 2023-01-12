@@ -319,7 +319,6 @@ private:
 
     void init_easy_handle(CURL*& handle, curl_slist*& slist, size_t i)
     {
-        curl_easy_setopt(handle, CURLOPT_URL, m_request_args[i].url().c_str());
         curl_easy_setopt(handle, CURLOPT_FOLLOWLOCATION, 1L);
         curl_easy_setopt(handle, CURLOPT_WRITEDATA, &m_responses[i]);
         curl_easy_setopt(handle, CURLOPT_WRITEFUNCTION, &requests_t::write_callback);
@@ -335,14 +334,28 @@ private:
         if(m_request_args[i].type == ReqType::POST)
         {
             curl_easy_setopt(handle, CURLOPT_POST, 1);
+
+            std::string full_url {m_request_args[i].url()};
+            size_t pos = full_url.find_first_of('?');
+
+            curl_easy_setopt(handle, CURLOPT_URL, full_url.substr(0, pos).c_str());
+            if (pos != full_url.npos)
+                curl_easy_setopt(handle, CURLOPT_POSTFIELDS, full_url.substr(pos+1).c_str());
+
         }
         else if(m_request_args[i].type == ReqType::GET)
         {
             curl_easy_setopt(handle, CURLOPT_HTTPGET, 1);
+            curl_easy_setopt(handle, CURLOPT_URL, m_request_args[i].url().c_str());
         }
         else if(m_request_args[i].type == ReqType::DELETE)
         {
             curl_easy_setopt(handle, CURLOPT_CUSTOMREQUEST, "DELETE");
+            curl_easy_setopt(handle, CURLOPT_URL, m_request_args[i].url().c_str());
+        }
+        else
+        {
+            curl_easy_setopt(handle, CURLOPT_URL, m_request_args[i].url().c_str());
         }
 
         if (m_request_args[i].m_data.size() > 0)
