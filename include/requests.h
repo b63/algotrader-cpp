@@ -340,7 +340,10 @@ private:
 
             curl_easy_setopt(handle, CURLOPT_URL, full_url.substr(0, pos).c_str());
             if (pos != full_url.npos)
-                curl_easy_setopt(handle, CURLOPT_POSTFIELDS, full_url.substr(pos+1).c_str());
+            {
+                //log("post field args: {}", full_url.substr(pos+1));
+                curl_easy_setopt(handle, CURLOPT_COPYPOSTFIELDS, full_url.substr(pos+1).c_str());
+            }
 
         }
         else if(m_request_args[i].type == ReqType::GET)
