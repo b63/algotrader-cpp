@@ -21,7 +21,8 @@ std::string url_escape_curl(const std::string& str);
 enum class ReqType
 {
     GET,
-    POST
+    POST,
+    DELETE
 };
 
 
@@ -37,6 +38,16 @@ struct request_args_t {
     {
         m_url << url;
         has_query_string = (url.find('?') != std::string::npos);
+    }
+
+    std::string url_params_to_string() const
+    {
+        std::string url {m_url.str()};
+        size_t pos = url.find_first_of('?');
+        if (pos == std::string::npos)
+            return "";
+
+        return url.substr(pos+1);
     }
 
     request_args_t& add_url_param(const std::string& key, const std::string& value)
@@ -313,6 +324,8 @@ private:
         curl_easy_setopt(handle, CURLOPT_WRITEDATA, &m_responses[i]);
         curl_easy_setopt(handle, CURLOPT_WRITEFUNCTION, &requests_t::write_callback);
         curl_easy_setopt(handle, CURLOPT_ERRORBUFFER, m_error_buf[i].data());
+        curl_easy_setopt(handle, CURLOPT_TIMEOUT, 5L);
+        curl_easy_setopt(handle, CURLOPT_CONNECTTIMEOUT, 5L);
 #ifdef VERBOSE_CURL_REQUESTS
         curl_easy_setopt(handle, CURLOPT_DEBUGFUNCTION, &requests_t::debug_callback);
         curl_easy_setopt(handle, CURLOPT_DEBUGDATA, this);
@@ -326,6 +339,10 @@ private:
         else if(m_request_args[i].type == ReqType::GET)
         {
             curl_easy_setopt(handle, CURLOPT_HTTPGET, 1);
+        }
+        else if(m_request_args[i].type == ReqType::DELETE)
+        {
+            curl_easy_setopt(handle, CURLOPT_CUSTOMREQUEST, "DELETE");
         }
 
         if (m_request_args[i].m_data.size() > 0)
