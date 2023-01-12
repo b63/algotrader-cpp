@@ -3,7 +3,7 @@
 // disable verbose log
 #undef WEBSOCKET_LOGS
 #undef MESSAGE_PAYLOAD_LOG
-//#undef VERBOSE_CURL_REQUESTS
+#undef VERBOSE_CURL_REQUESTS
 
 #include "wallet_binance.h"
 
@@ -29,6 +29,9 @@ int main(int argc, char** argv)
 
     wallet<binance_api> w {"bD9QfIu4FBdRJpviWI075M6KMX2lb9oUyLfC2IknlE4vcIbnFKQaeSm8f0vLW8te", "AfqGK6Jf8HQGiI93RC7jYDJMKVS9cMlc4adhvcXeMSOSUKQEIkmIV9SmeZDu0kd5"};
     instrument_pair_t pair {instrument("ETH"), instrument("USD")};
+
+    log("--- getting balance ---");
+    log("USD BALANCE: {}", w.get_asset_account_balance("USD").value_or(std::nan("")));
 
     log("--- getting balance ---");
     log("USD BALANCE: {}", w.get_asset_account_balance("USD").value_or(std::nan("")));

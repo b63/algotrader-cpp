@@ -5,7 +5,7 @@
 #undef MESSAGE_PAYLOAD_LOG
 #undef VERBOSE_CURL_REQUESTS
 
-#include "wallet.h"
+#include "wallet_coinbase.h"
 
 #include <string>
 #include <cmath>
