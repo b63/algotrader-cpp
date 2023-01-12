@@ -14,6 +14,40 @@
 #include <any>
 #include <chrono>
 
+inline double round_to_precision(double value, int precision, bool larger)
+{
+    if (larger)
+    {
+        return std::ceil(value * std::pow(10.0l, precision))/std::pow(10.0l, precision);
+    }
+
+    return std::floor(value * std::pow(10.0l, precision))/std::pow(10.0l, precision);
+}
+
+inline std::string round_to_precision_str(double value, int precision, bool larger)
+{
+    std::string str {std::to_string(round_to_precision(value, precision, larger))};
+    size_t pos = str.find_first_of('.');
+    if (pos == str.npos)
+        return str;
+    return str.substr(0, pos + precision + 1);
+}
+
+inline std::string round_quantity_to_precision(double quantity, int precision)
+{
+    return round_to_precision_str(quantity, precision, false);
+}
+
+inline std::string round_bid_price_to_precision(double price, int precision)
+{
+    return round_to_precision_str(price, precision, false);
+}
+
+inline std::string round_ask_price_to_precision(double price, int precision)
+{
+    return round_to_precision_str(price, precision, true);
+}
+
 template<typename T, typename... U>
 concept is_any = (std::same_as<T, U> || ...);
 
