@@ -16,9 +16,19 @@
 template <>
 class wallet<binance_api>
 {
+
+    struct symbol_info
+    {
+        int quote_precision;
+        int base_precision;
+        double min_notional;
+        Value raw_doc;
+    };
+
 private:
     const std::string m_api_key;
     const std::string m_secret_key;
+    std::unordered_map<instrument_pair_t, symbol_info> m_symbol_map;
 
     std::string sign_payload(const request_args_t& args, const std::string& payload)
     {
@@ -330,6 +340,71 @@ public:
         }
 
         return false;
+    }
+
+    void load_symbol_info(instrument_pair_t pair)
+    {
+        const std::string url {std::format("{}{}", binance_api::BASE_API_URL, binance_api::EXCHAGE_INFO_PATH)};
+
+        long time_ms {std::chrono::time_point_cast<std::chrono::milliseconds>(std::chrono::system_clock::now()).time_since_epoch().count()};
+
+        requests_t req;
+        request_args_t& rargs = req.add_request(url, ReqType::GET)
+            .add_header("X-MBX-APIKEY", m_api_key)
+            .add_url_param("symbol", instrument_pair::to_binance(pair))
+            .add_url_param("timestamp", std::to_string(time_ms));
+
+        requests_t::statuses_t codes;
+        size_t failed = req.fetch_all(codes);
+        if (failed > 0 || codes.at(0) > 0)
+        {
+            throw std::runtime_error(std::format("ERROR exchange info request to {} failed with {}", 
+                    exchange_api::to_string(binance_api::exchange_api_id),
+                    req.get_error_msg(0, codes[0])));
+        }
+
+
+        std::string response {req.get_response(0)};
+        if (response.back() != '\0')
+            response.push_back('\0');
+
+
+        Document doc;
+        rapidjson::ParseResult res {doc.ParseInsitu(response.data())};
+
+        if (!res)
+        {
+            throw std::runtime_error(std::format("ERROR get order response \"{}\", parse error at offet {}: to parse: {}", response,
+                    res.Offset(), rapidjson::GetParseError_En(res.Code())));
+        }
+
+        if (!doc.HasMember("symbols") && !doc["symbols"].IsArray() && doc["symbols"].Size() != 1)
+        {
+            throw std::runtime_error(std::format("ERROR get order unkown response: {}", to_string<Document>(doc)));
+        }
+
+        Value& symbol = doc["symbols"][0];
+
+        int quote_precision = symbol["quotePrecision"];
+        int base_precision = symbol["baseAssetPrecision"];
+        double min_notional = -1;
+
+        Value& filters = doc["filters"];
+        for (size_t i = 0; i < filters.Size(); ++i)
+        {
+            const Value& filter = filters[i];
+            if (std::strncmp("MIN_NOTIONAL", filter["filterType"].GetString(), filter["filterType"].GetStringLength()))
+                continue;
+            min_notional = std::stod(filter["minNotional"].GetString());
+            break;
+        }
+
+        if (min_notional < 0)
+            throw std::runtime_error("ERORR unable to get value for minNotional: {}", to_string<Value>(filters));
+
+        m_symbol_map.emplace(std::piecewise_construct,
+                std::forward_as_tuple(pair),
+                std::forward_as_tuple(quote_precision, base_precision, min_notional, std::move(symbol)));
     }
 
 

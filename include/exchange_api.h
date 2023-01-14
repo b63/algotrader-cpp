@@ -142,10 +142,11 @@ struct binance_api {
     static constexpr const char* SOCKET_URI = "wss://stream.binance.us:9443";
     static constexpr const char* SNAPSHOT_URL = "https://www.binance.us/api/v1/depth";
     static constexpr const char* BASE_API_URL = "https://api.binance.us";
-    static constexpr const char* CREATE_ORDER_PATH = "/api/v3/order";
+    static constexpr const char* CREATE_ORDER_PATH = "/api/v4/order";
     static constexpr const char* GET_ORDER_PATH = "/api/v3/order";
     static constexpr const char* CANCEL_ORDER_PATH = "/api/v3/order";
     static constexpr const char* GET_ACCOUNT_PATH = "/api/v3/account";
+    static constexpr const char* EXCHAGE_INFO_PATH = "/api/v3/exchangeInfo";
 };
 
 template <typename ExchangeAPI>

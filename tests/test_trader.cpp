@@ -2,6 +2,7 @@
 // disble verbose logging
 #undef WEBSOCKET_LOGS
 #undef MESSAGE_PAYLOAD_LOG
+#undef VERBOSE_CURL_REQUESTS
 
 #include "exchange_api.h"
 #include "coinbase_feed.h"
@@ -66,12 +67,14 @@ public:
 
         if (max_profit > 0)
         {
-            log("Maximum profit ask: $ {:f}, ({} -> {}) {:f} @ {:.5e} -> {:f} @ {:.5e}",
+            log("Maximum profit ask: $ {:f}, ({} -> {}) {:f} @ {:.5e} [${:.2f}] -> {:f} @ {:.5e} [${:.2f}]",
                     max_profit,
                     exchange_api::to_string(target_id),
                     exchange_api::to_string(source_id),
                     target_order->first, target_order->second,
-                    source_bid.first, source_bid.second);
+                    target_order->first * target_order->second,
+                    source_bid.first, source_bid.second,
+                    source_bid.first*source_bid.second);
         }
     }
 
@@ -105,12 +108,14 @@ public:
 
         if (max_profit > 0)
         {
-            log("Maximum profit bid: $ {:f}, ({} -> {}) {:f} @ {:.5e} -> {:f} @ {:.5e}",
+            log("Maximum profit bid: $ {:f}, ({} -> {}) {:f} @ {:.5e} [${:.2f}]-> {:f} @ {:.5e} [${:.2f}]",
                     max_profit,
                     exchange_api::to_string(source_id),
                     exchange_api::to_string(target_id),
                     source_ask.first, source_ask.second,
-                    target_order->first, target_order->second);
+                    source_ask.first * source_ask.second,
+                    target_order->first, target_order->second,
+                    target_order->first * target_order->second);
         }
 
     }

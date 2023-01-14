@@ -26,7 +26,7 @@ int main(int argc, char** argv)
     double price = std::stod(argv[1]);
     double spend = std::stod(argv[2]);
 
-    const double QUANTITY = spend/price;
+    const double quantity = spend/price;
 
     wallet<binance_api> w {"EiWengYbNGKsEcKoeHlf8kIT3Z8jfHRd53UfEeckVIJpTSqDJYEiuPtviE6pVKU9", "F3qkDsWhvZOukntRHDwucLFjDXEu6BYuJIwUTNrZ4cI8mWuUdK2LxvRREzE6gxtR"};
     instrument_pair_t pair {instrument("ETH"), instrument("USD")};
@@ -36,7 +36,7 @@ int main(int argc, char** argv)
 
     // buy order
     log("\n--- buying order ---");
-    std::optional<order_status> op_status{w.create_limit_buy_order(pair, price, QUANTITY)};
+    std::optional<order_status> op_status{w.create_limit_buy_order(pair, price, quantity)};
     if(!op_status)
     {
         log("create_immediate_buy_order FAILED");
@@ -70,7 +70,7 @@ int main(int argc, char** argv)
 
     log("\n--- selling order --");
     // create a sell order
-    op_status = w.create_limit_sell_order(pair, price, QUANTITY);
+    op_status = w.create_limit_sell_order(pair, price, quantity);
     if(!op_status)
     {
         log("create_immediate_sell_order FAILED");
