@@ -28,8 +28,10 @@ int main(int argc, char** argv)
 
     const double quantity = spend/price;
 
-    wallet<binance_api> w {"EiWengYbNGKsEcKoeHlf8kIT3Z8jfHRd53UfEeckVIJpTSqDJYEiuPtviE6pVKU9", "F3qkDsWhvZOukntRHDwucLFjDXEu6BYuJIwUTNrZ4cI8mWuUdK2LxvRREzE6gxtR"};
     instrument_pair_t pair {instrument("ETH"), instrument("USD")};
+    wallet<binance_api> w {pair,
+        "EiWengYbNGKsEcKoeHlf8kIT3Z8jfHRd53UfEeckVIJpTSqDJYEiuPtviE6pVKU9",
+        "F3qkDsWhvZOukntRHDwucLFjDXEu6BYuJIwUTNrZ4cI8mWuUdK2LxvRREzE6gxtR"};
 
     log("--- getting balance ---");
     log("USD BALANCE: {}", w.get_asset_account_balance("USD").value_or(std::nan("")));

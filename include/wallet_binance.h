@@ -9,6 +9,7 @@
 
 #include <chrono>
 #include <ctime>
+#include <exception>
 #include <optional>
 #include <cstring>
 
@@ -17,18 +18,47 @@ template <>
 class wallet<binance_api>
 {
 
-    struct symbol_info
+    struct symbol_info_t
     {
         int quote_precision;
         int base_precision;
         double min_notional;
+
+        double min_price;
+        double max_price;
+        double step_price;
+        double min_qty;
+        double max_qty;
+        double step_qty;
+
         Value raw_doc;
+
+        symbol_info_t(int quote_precision, int base_precision, double min_notional,
+                      const std::tuple<double, double, double>& price_filter, 
+                      const std::tuple<double, double, double>& qty_filter, 
+                      Value& raw_doc)
+            :// precision
+            quote_precision(quote_precision),
+            base_precision(base_precision),
+            // min volume
+            min_notional(min_notional),
+            // price filtr
+            min_price(std::get<0>(price_filter)),
+            max_price(std::get<1>(price_filter)),
+            step_price(std::get<2>(price_filter)),
+            // qty filter
+            min_qty(std::get<0>(qty_filter)),
+            max_qty(std::get<1>(qty_filter)),
+            step_qty(std::get<2>(qty_filter)),
+            // raw json
+            raw_doc(std::move(raw_doc))
+        { }
     };
 
 private:
     const std::string m_api_key;
     const std::string m_secret_key;
-    std::unordered_map<instrument_pair_t, symbol_info> m_symbol_map;
+    symbol_info_t m_info;
 
     std::string sign_payload(const request_args_t& args, const std::string& payload)
     {
@@ -104,14 +134,105 @@ private:
     }
 
 
+    /**
+     * Trys to fetches and parse relevant fields from the exchange info for the pair. Throws exception
+     * upon failure.
+     *
+     * Returns `symbol_info_t` type with information about price and quantity filters (i.e. min/max/step size)
+    */
+    symbol_info_t load_symbol_info(instrument_pair_t pair)
+    {
+        const std::string url {std::format("{}{}", binance_api::BASE_API_URL, binance_api::EXCHAGE_INFO_PATH)};
+
+        long time_ms {std::chrono::time_point_cast<std::chrono::milliseconds>(std::chrono::system_clock::now()).time_since_epoch().count()};
+
+        requests_t req;
+        req.add_request(url, ReqType::GET)
+            .add_header("X-MBX-APIKEY", m_api_key)
+            .add_url_param("symbol", instrument_pair::to_binance(pair))
+            .add_url_param("timestamp", std::to_string(time_ms));
+
+        CURLcode code = req.fetch_first();
+        if (!code)
+        {
+            throw std::runtime_error(std::format("ERROR exchange info request to {} failed with {}", 
+                    exchange_api::to_string(binance_api::exchange_api_id),
+                    req.get_error_msg(0, code)));
+        }
+
+
+        std::string response {req.get_response_c_str(0)};
+
+        Document doc;
+        rapidjson::ParseResult res {doc.ParseInsitu(response.data())};
+
+        if (!res)
+        {
+            throw std::runtime_error(std::format("ERROR get order response \"{}\", parse error at offet {}: to parse: {}", response,
+                    res.Offset(), rapidjson::GetParseError_En(res.Code())));
+        }
+
+        if (!doc.HasMember("symbols") && !doc["symbols"].IsArray() && doc["symbols"].Size() != 1)
+        {
+            throw std::runtime_error(std::format("ERROR get order unkown response: {}", to_string<Document>(doc)));
+        }
+
+        Value& symbol = doc["symbols"][0];
+
+        int quote_precision = symbol["quotePrecision"].GetInt();
+        int base_precision = symbol["baseAssetPrecision"].GetInt();
+        double min_notional = -1;
+
+        bool lot_size_filter_found = false;
+        bool price_filter_found    = false;
+        std::tuple<double, double, double> lot_size_filter;
+        std::tuple<double, double, double> price_filter;
+
+        Value& filters = doc["filters"];
+        for (size_t i = 0; i < filters.Size(); ++i)
+        {
+            const Value& filter = filters[i];
+            const char* ftype = filter["filterType"].GetString();
+            const size_t flen = filter["filterType"].GetStringLength();
+
+            if (min_notional < 0 && !std::strncmp("MIN_NOTIONAL", ftype, flen))
+            {
+                min_notional = std::stod(filter["minNotional"].GetString());
+            }
+            else if (!lot_size_filter_found && !std::strncmp("LOT_SIZE", ftype, flen))
+            {
+                lot_size_filter = { get_member_from_str<double>(filter, "minQty"),
+                                    get_member_from_str<double>(filter, "maxQty"),
+                                    get_member_from_str<double>(filter, "stepSize") };
+                lot_size_filter_found = true;
+            }
+            else if (!price_filter_found && !std::strncmp("PRICE_FILTER", ftype, flen))
+            {
+                price_filter = { get_member_from_str<double>(filter, "minPrice"),
+                                    get_member_from_str<double>(filter, "maxPrice"),
+                                    get_member_from_str<double>(filter, "tickSize") };
+                price_filter_found = true;
+            }
+        }
+
+        if (min_notional < 0 || !lot_size_filter_found || !price_filter_found)
+            throw std::runtime_error(std::format("ERORR unable to all filter values: {}", to_string<Value>(filters)));
+
+
+        return symbol_info_t(quote_precision, base_precision, min_notional, price_filter, lot_size_filter, symbol);
+    }
+
+
 public:
-    wallet<>(const std::string& api_key, const std::string& secret_key)
-        : m_api_key {api_key}, m_secret_key{secret_key}
+    const instrument_pair_t pair;
+
+    wallet<>(instrument_pair_t pair, const std::string& api_key, const std::string& secret_key)
+        :  m_api_key {api_key}, m_secret_key{secret_key}, m_info(load_symbol_info(pair)), pair{pair}
     { }
 
 
 
-    void create_limit_order_request(requests_t& req, SIDE side, instrument_pair_t pair, double limit_price, double quantity)
+    void create_limit_order_request(requests_t& req, SIDE side, double limit_price, double quantity)
     {
         const std::string url {std::format("{}{}", binance_api::BASE_API_URL, binance_api::CREATE_ORDER_PATH)};
 
@@ -147,13 +268,8 @@ public:
             return std::nullopt;
         }
 
-
-        std::string response {req.get_response(index)};
-        if (response.back() != '\0')
-            response.push_back('\0');
-
-
         Document doc;
+        std::string response {req.get_response_c_str(index)};
         rapidjson::ParseResult res {doc.ParseInsitu(response.data())};
 
         if (!res)
@@ -183,7 +299,7 @@ public:
     {
         requests_t req;
         requests_t::statuses_t codes;
-        create_limit_order_request(req, SIDE::SELL, pair, limit_price, quantity);
+        create_limit_order_request(req, SIDE::SELL, limit_price, quantity);
         req.fetch_all(codes);
         return parse_create_limit_order_request(req, codes, 0);
     }
@@ -192,7 +308,7 @@ public:
     {
         requests_t req;
         requests_t::statuses_t codes;
-        create_limit_order_request(req, SIDE::BUY, pair, limit_price, quantity);
+        create_limit_order_request(req, SIDE::BUY, limit_price, quantity);
         req.fetch_all(codes);
 
         return parse_create_limit_order_request(req, codes, 0);
@@ -340,71 +456,6 @@ public:
         }
 
         return false;
-    }
-
-    void load_symbol_info(instrument_pair_t pair)
-    {
-        const std::string url {std::format("{}{}", binance_api::BASE_API_URL, binance_api::EXCHAGE_INFO_PATH)};
-
-        long time_ms {std::chrono::time_point_cast<std::chrono::milliseconds>(std::chrono::system_clock::now()).time_since_epoch().count()};
-
-        requests_t req;
-        request_args_t& rargs = req.add_request(url, ReqType::GET)
-            .add_header("X-MBX-APIKEY", m_api_key)
-            .add_url_param("symbol", instrument_pair::to_binance(pair))
-            .add_url_param("timestamp", std::to_string(time_ms));
-
-        requests_t::statuses_t codes;
-        size_t failed = req.fetch_all(codes);
-        if (failed > 0 || codes.at(0) > 0)
-        {
-            throw std::runtime_error(std::format("ERROR exchange info request to {} failed with {}", 
-                    exchange_api::to_string(binance_api::exchange_api_id),
-                    req.get_error_msg(0, codes[0])));
-        }
-
-
-        std::string response {req.get_response(0)};
-        if (response.back() != '\0')
-            response.push_back('\0');
-
-
-        Document doc;
-        rapidjson::ParseResult res {doc.ParseInsitu(response.data())};
-
-        if (!res)
-        {
-            throw std::runtime_error(std::format("ERROR get order response \"{}\", parse error at offet {}: to parse: {}", response,
-                    res.Offset(), rapidjson::GetParseError_En(res.Code())));
-        }
-
-        if (!doc.HasMember("symbols") && !doc["symbols"].IsArray() && doc["symbols"].Size() != 1)
-        {
-            throw std::runtime_error(std::format("ERROR get order unkown response: {}", to_string<Document>(doc)));
-        }
-
-        Value& symbol = doc["symbols"][0];
-
-        int quote_precision = symbol["quotePrecision"];
-        int base_precision = symbol["baseAssetPrecision"];
-        double min_notional = -1;
-
-        Value& filters = doc["filters"];
-        for (size_t i = 0; i < filters.Size(); ++i)
-        {
-            const Value& filter = filters[i];
-            if (std::strncmp("MIN_NOTIONAL", filter["filterType"].GetString(), filter["filterType"].GetStringLength()))
-                continue;
-            min_notional = std::stod(filter["minNotional"].GetString());
-            break;
-        }
-
-        if (min_notional < 0)
-            throw std::runtime_error("ERORR unable to get value for minNotional: {}", to_string<Value>(filters));
-
-        m_symbol_map.emplace(std::piecewise_construct,
-                std::forward_as_tuple(pair),
-                std::forward_as_tuple(quote_precision, base_precision, min_notional, std::move(symbol)));
     }
 
 

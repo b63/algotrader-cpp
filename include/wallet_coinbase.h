@@ -2,7 +2,7 @@
 #define _WALLET_COINBASE_H
 
 #include "exchange_api.h"
-#include "crypt.h"
+#include "crypto.h"
 #include "json.h"
 #include "wallet.h"
 

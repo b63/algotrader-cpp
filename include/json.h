@@ -8,6 +8,7 @@
 
 #include <typeinfo>
 #include <optional>
+#include <string>
 
 
 typedef rapidjson::Document Document;
@@ -19,6 +20,10 @@ typedef rapidjson::Writer<StringBuffer> StringBufferWriter;
 
 
 Document from_string(const std::string& json_str);
+
+
+template <typename T>
+T get_member_from_str(const Value& doc, const std::string& key);
 
 template<typename T, typename... Keys>
 std::optional<Value::ConstMemberIterator> get_json_member(const T& doc, Keys&&... keys)

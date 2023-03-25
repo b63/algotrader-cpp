@@ -13,6 +13,7 @@
 #include <string>
 #include <sstream>
 #include <functional>
+#include <unordered_map>
 
 void libcurl_init();
 void libcurl_cleanup();
@@ -194,6 +195,14 @@ struct requests_t {
         return m_responses.at(index).str();
     }
 
+    std::string get_response_c_str(size_t index)
+    {
+        std::string s {m_responses.at(index).str()};
+        if (s.back() != '\0')
+            s.push_back('\0');
+        return s;
+    }
+
     std::string get_error_msg(size_t index)
     {
         return std::string{static_cast<const char*>(m_error_buf[index].data())};
@@ -216,6 +225,13 @@ struct requests_t {
         for (auto& ss : m_responses)
             ss.clear();
         m_readers.clear();
+    }
+
+    CURLcode fetch_first()
+    {
+        std::vector<CURLcode> codes;
+        fetch_all(codes);
+        return codes[0];
     }
 
 
