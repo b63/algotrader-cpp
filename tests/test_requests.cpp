@@ -25,7 +25,7 @@ int main(int argc, const char **argv)
     req.add_request("https://this_url_should_not_exist_.dankmemes99.com");
 
     req.add_request("https://www.binance.us/api/v1/depth")
-       .add_header("x-mbx-apikey", "bD9QfIu4FBdRJpviWI075M6KMX2lb9oUyLfC2IknlE4vcIbnFKQaeSm8f0vLW8te")
+       .add_header("x-mbx-apikey", "bD9QfIu4FBdXXXXXXXXXXXXXXX2lb9oUyLfC2IknlE4vcIbnFKQaeSm8f0vLW8te")
        .add_url_param("symbol", "BTC-USD")
        .add_url_param("limit", "5000");
 

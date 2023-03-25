@@ -165,11 +165,11 @@ int main(void) {
 
     TestTrader trader(t_pair);
 
-    market_feed<coinbase_api> cb_feed (pairs, "OVvF5YREDjPdLz9J", "gxDeuHUXte1vbuVRdRy3dHLhXgO0M6ej");
+    market_feed<coinbase_api> cb_feed (pairs, "OVvFXXXXXXXdLz9J", "gxDeuHUXtXXXXXXXXXXXXXXXXgO0M6ej");
     cb_feed.register_event_handler(feed_event_t(t_pair, feed_event_t::ORDERS_UPDATED),
             std::bind(&TestTrader::feed_event_handler, &trader, std::placeholders::_1));
 
-    market_feed<binance_api> bi_feed (pairs, "bD9QfIu4FBdRJpviWI075M6KMX2lb9oUyLfC2IknlE4vcIbnFKQaeSm8f0vLW8te", "AfqGK6Jf8HQGiI93RC7jYDJMKVS9cMlc4adhvcXeMSOSUKQEIkmIV9SmeZDu0kd5");
+    market_feed<binance_api> bi_feed (pairs, "bD9QfIu4FBdXXXXXXXXXXXXXXXXXXXXXyLfC2IknlE4vcIbnFKQaeSm8f0vLW8te", "AfqGK6Jf8HQGiI93RC7jYDJMKVS9cMlc4XXXXXXXXXXXXXXXXXXXV9SmeZDu0kd5");
     bi_feed.register_event_handler(feed_event_t(t_pair, feed_event_t::ORDERS_UPDATED),
             std::bind(&TestTrader::feed_event_handler, &trader, std::placeholders::_1));
 

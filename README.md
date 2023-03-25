@@ -4,7 +4,7 @@
 Algo Trades maintains a local order book for select instrument pairs (eg. BTC-USD) 
 by subscribing to the web socket market feed provided by [Binance US](https://docs.binance.us/#websocket-information)
 and [Coinbase](https://docs.cloud.coinbase.com/advanced-trade-api/docs/ws-overview).
-The local order book is then used in conjunction with various trading algorithmns to execute mock trades. Requires API key/secrets to execute real trades.
+The local order book is then used in conjunction with various trading algorithmns to execute mock trades. Requires API key/secrets to execute real trades (the default ones are not valid).
 - Arbritrage trades between exchanges. Latency was kept in mind so trade orders can be submitted with minimal latency once a profitable trade is found.
 - Momentum trading [WIP]
 

@@ -1,7 +1,7 @@
 import json, hmac, hashlib, time, base64, requests
 
-SECRET_KEY = "wPIb36YUgWytnLuAMGstGGDFIRXsRCSm"
-API_KEY    = "F7lqbf8vpl39DBmf"
+SECRET_KEY = "wPIb3XXXXXXXXXXXXXXtGGDFIRXsRCSm"
+API_KEY    = "F7lqbXXXXXX9DBmf"
 URL = "https://api.coinbase.com/api/v3/brokerage/accounts/"
 
 

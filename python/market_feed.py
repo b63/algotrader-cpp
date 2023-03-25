@@ -41,8 +41,8 @@ class MarketFeed(abc.ABC):
 
 
 class BinanceMaketFeed(MarketFeed):
-    SECRET_API_KEY = "AfqGK6Jf8HQGiI93RC7jYDJMKVS9cMlc4adhvcXeMSOSUKQEIkmIV9SmeZDu0kd5"
-    API_KEY = "bD9QfIu4FBdRJpviWI075M6KMX2lb9oUyLfC2IknlE4vcIbnFKQaeSm8f0vLW8te"
+    SECRET_API_KEY = "AfqGK6Jf8HQGiIXXXXXXXXXXXXXXXXXX4adhvcXeMSOSUKQEIkmIV9SmeZDu0kd5"
+    API_KEY = "bD9QfIu4FBdRJpviWI075XXXXXXXXXXXXXXXXXXXlE4vcIbnFKQaeSm8f0vLW8te"
     SOCKET_API_URL = "wss://stream.binance.us:9443/ws"
     SNAPSHOT_API_URL = "https://www.binance.us/api/v1/depth"
 
@@ -198,8 +198,8 @@ class BinanceMaketFeed(MarketFeed):
 
 
 class CoinBaseMaketFeed(MarketFeed):
-    SECRET_KEY = "kZetsiamVepxJyTjGV2La60JPaOxNL9L"
-    API_KEY    = "Llnonme9PTHbbud2"
+    SECRET_KEY = "kZetsXXXXXXXXyTjGV2La60JPaOxNL9L"
+    API_KEY    = "LlnonXXXXXXbbud2"
     SOCKET_API_URL    = "wss://advanced-trade-ws.coinbase.com"
     NAME = "Coinbase"
 

@@ -19,7 +19,7 @@ int main(void) {
     std::vector<instrument_pair_t> pairs;
     pairs.emplace_back(instrument("ETH"), instrument("USD"));
 
-    market_feed<coinbase_api> cb_feed (pairs, "OVvF5YREDjPdLz9J", "gxDeuHUXte1vbuVRdRy3dHLhXgO0M6ej");
+    market_feed<coinbase_api> cb_feed (pairs, "OVvF5YREXXXXXXXJ", "gXXXXXXXXXXXXXXXXXXXXXLhXgO0M6ej");
     cb_feed.register_event_handler(feed_event_t(ethusd, feed_event_t::ORDERS_UPDATED), 
             [](const orderbook_t& orderbook) -> bool {
                 // NOTE: potentially invalid memory access here, check size of bid/ask maps first
@@ -36,7 +36,7 @@ int main(void) {
             }
         );
 
-    market_feed<binance_api> bi_feed (pairs, "bD9QfIu4FBdRJpviWI075M6KMX2lb9oUyLfC2IknlE4vcIbnFKQaeSm8f0vLW8te", "AfqGK6Jf8HQGiI93RC7jYDJMKVS9cMlc4adhvcXeMSOSUKQEIkmIV9SmeZDu0kd5");
+    market_feed<binance_api> bi_feed (pairs, "bD9QXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXC2IknlE4vcIbnFKQaeSm8f0vLW8te", "AfqGK6Jf8HQGiI93RC7jYDJMKVS9cMlc4adXXXXXXXXXXXXXXXXXXXXXXXXX0kd5");
     bi_feed.register_event_handler(feed_event_t(ethusd, feed_event_t::ORDERS_UPDATED), 
             [](const orderbook_t& orderbook) -> bool {
                 // NOTE: potentially invalid memory access here, check size of bid/ask maps first

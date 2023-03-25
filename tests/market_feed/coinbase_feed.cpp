@@ -11,7 +11,7 @@ int main(void) {
     std::vector<instrument_pair_t> pairs;
     pairs.emplace_back(instrument("ETH"), instrument("USD"));
 
-    market_feed<coinbase_api> feed (pairs, "Pa64Af8wXOV8GVQc", "E5ObghoQazarFycSTKXRWRrY0FpTeTR8");
+    market_feed<coinbase_api> feed (pairs, "PaXXXXXXXXXXGVQc", "E5lXXXXXXXXXXXXXTKXRWRrY0FpTeTR8");
     feed.start_feed();
 
     using namespace std::chrono_literals;

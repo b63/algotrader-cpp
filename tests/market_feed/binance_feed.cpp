@@ -10,8 +10,8 @@ int main(void) {
     pairs.emplace_back(instrument("ETH"), instrument("USD"));
 
     market_feed<binance_api> feed (pairs,
-            "bD9QfIu4FBdRJpviWI075M6KMX2lb9oUyLfC2IknlE4vcIbnFKQaeSm8f0vLW8te",
-            "AfqGK6Jf8HQGiI93RC7jYDJMKVS9cMlc4adhvcXeMSOSUKQEIkmIV9SmeZDu0kd5");
+            "bD9QfIuXXXXXXXXXXXXXXXXXXX2lb9oUyLfC2IknlE4vcIbnFKQaeSm8f0vLW8te",
+            "AfqGK6JXXXXXXXXXXXXXXXXXXXXXXMlc4adhvcXeMSOSUKQEIkmIV9SmeZDu0kd5");
     feed.start_feed();
 
     using namespace std::chrono_literals;

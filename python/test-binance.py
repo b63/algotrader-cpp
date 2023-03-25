@@ -1,6 +1,6 @@
 import requests
 
-headers = {"x-mbx-apikey": "bD9QfIu4FBdRJpviWI075M6KMX2lb9oUyLfC2IknlE4vcIbnFKQaeSm8f0vLW8te"}
+headers = {"x-mbx-apikey": "bD9QfIu4XXXXXXXXXXXXXX6KMX2lb9oUyLfC2IknlE4vcIbnFKQaeSm8f0vLW8te"}
 res = None
 
 

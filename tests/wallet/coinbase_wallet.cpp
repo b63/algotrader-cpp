@@ -27,7 +27,7 @@ int main(int argc, char** argv)
 
     const double QUANTITY = 1/price;
 
-    wallet<coinbase_api> w {"Pa64Af8wXOV8GVQc", "E5ObghoQazarFycSTKXRWRrY0FpTeTR8"};
+    wallet<coinbase_api> w {"Pa64AXXXXXXXXVQc", "EXXXXXXXXXXXFycSTKXRWRrY0FpTeTR8"};
     instrument_pair_t pair {instrument("ETH"), instrument("USD")};
 
     std::string order_id;
