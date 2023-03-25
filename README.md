@@ -40,7 +40,7 @@ mkdir -p logs && python monitor_book.py --coinbase ETH-USD --binance ETHUSD
 Requires the following:
 - libcurl
 - libopenssl (with libcrypto)
-- C++20 complaint toolchain (Uses libstdc++ from gcc@12.0, libc++ from llvm@16.0 does not seem to support jthread)
+- C++20 complaint toolchain (Uses libstdc++ from gcc@12.0 under OSX, libc++ from llvm@16.0 does not seem to support jthread)
 
 Locally clone the repository and initialize the submodules.
 ```bash
