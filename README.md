@@ -44,7 +44,7 @@ Requires the following:
 
 Locally clone the repository and initialize the submodules.
 ```bash
-git clone <URL>
+git clone https://github.com/b63/algotrader-cpp
 git submodule init && git submodule update
 ```
 
