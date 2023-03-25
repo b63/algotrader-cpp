@@ -8,7 +8,7 @@ The local order book is then used in conjunction with various trading algorithmn
 - Momentum trading [WIP]
 
 ## Example 
-Running `test_trader` logs the profitable arbritrage trades for instrument pair ETH-USD:
+Running `test_trader` logs the profitable arbritrage trades for a provided instrument pair (eg. ETH-USD shown here):
 ```
 Maximum profit bid: $ 0.576033, (Coinbase -> Binance) 1746.080000 @ 4.60826e-01 [$804.64]-> 1747.330000 @ 2.23000e+00 [$3896.55]
 Maximum profit ask: $ 1.170000, (Coinbase -> Binance) 1746.170000 @ 7.36246e+00 [$12856.10] -> 1747.340000 @ 1.00000e+00 [$1747.34]
