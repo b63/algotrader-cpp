@@ -30,7 +30,7 @@ The first line states based on the state of the order book at that time, simulta
 `{quantity: 0.460826, price: 1747.33}` to Binance US nets $0.57 in profit.
 
 ### TUI Application
-A toy TUI application in python is avaiable under `python/monitor_book.py` to monitor the order book:
+A toy TUI application in python is avaiable under `python/monitor_book.py` to monitor the order book of the exchanges for a paricular instrument pair.
 ```
 mkdir -p logs && python monitor_book.py --coinbase ETH-USD --binance ETHUSD
 ```
