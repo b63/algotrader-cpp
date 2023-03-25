@@ -26,7 +26,7 @@ Maximum profit bid: $ 0.425250, (Coinbase -> Binance) 1746.060000 @ 3.15000e-01 
 ...
 ```
 
-The first line states based on the state of the order book at that time, simultaneously submitting a bid order `{quantity: 0.460826, price: 1746.08}` (cost to Coinbase and an ask order 
+The first line states based on the state of the order book at that time, simultaneously submitting a bid order `{quantity: 0.460826, price: 1746.08}` to Coinbase and an ask order 
 `{quantity: 0.460826, price: 1747.33}` to Binance US nets $0.57 in profit.
 
 ### TUI Application
